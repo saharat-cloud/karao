@@ -222,6 +222,216 @@
             gap: 6px;
         }
 
+        /* Real Smart TV Remote D-Pad Hardware Style */
+        .remote-hardware-card {
+            background: linear-gradient(180deg, rgba(30, 30, 46, 0.95) 0%, rgba(15, 15, 26, 0.98) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .dpad-wrapper {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 10px auto 16px;
+        }
+
+        .dpad-ring {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%, #26263b 0%, #151522 100%);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.12);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+            z-index: 2;
+        }
+
+        .dpad-btn:active {
+            color: var(--primary);
+            background: rgba(255, 51, 102, 0.15);
+        }
+
+        .dpad-up {
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 84px;
+            height: 64px;
+            padding-bottom: 12px;
+            border-radius: 50px 50px 0 0;
+        }
+        .dpad-up:active {
+            transform: translateX(-50%) scale(0.94);
+        }
+
+        .dpad-down {
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 84px;
+            height: 64px;
+            padding-top: 12px;
+            border-radius: 0 0 50px 50px;
+        }
+        .dpad-down:active {
+            transform: translateX(-50%) scale(0.94);
+        }
+
+        .dpad-left {
+            left: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 64px;
+            height: 84px;
+            padding-right: 12px;
+            border-radius: 50px 0 0 50px;
+        }
+        .dpad-left:active {
+            transform: translateY(-50%) scale(0.94);
+        }
+
+        .dpad-right {
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 64px;
+            height: 84px;
+            padding-left: 12px;
+            border-radius: 0 50px 50px 0;
+        }
+        .dpad-right:active {
+            transform: translateY(-50%) scale(0.94);
+        }
+
+        .dpad-center {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #32324d 0%, #1c1c2b 100%);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dpad-center:active {
+            background: linear-gradient(135deg, var(--primary), #e11d48);
+            transform: scale(0.92);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .remote-nav-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        .nav-pill-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 10px 4px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-pill-btn i {
+            font-size: 16px;
+            color: #38bdf8;
+        }
+
+        .nav-pill-btn:active {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            transform: scale(0.93);
+        }
+
+        /* Playback 3-Button Strip */
+        .playback-strip {
+            display: grid;
+            grid-template-columns: 1fr 1.35fr 1fr;
+            gap: 8px;
+        }
+
+        .p-btn {
+            border: none;
+            color: #fff;
+            padding: 14px 8px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .p-btn i {
+            font-size: 20px;
+        }
+
+        .p-btn.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .p-btn.primary {
+            background: linear-gradient(135deg, var(--primary), #ff6b6b);
+            box-shadow: 0 6px 18px var(--primary-glow);
+            font-size: 13px;
+        }
+
+        .p-btn.primary i {
+            font-size: 24px;
+        }
+
+        .p-btn:active {
+            transform: scale(0.94);
+        }
+
         .remote-pad-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -292,8 +502,25 @@
 
         #remote-vol-slider {
             flex: 1;
-            accent-color: var(--primary);
+            -webkit-appearance: none;
+            appearance: none;
             height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #remote-vol-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
         }
 
         /* Reactions Grid */
@@ -556,34 +783,74 @@
             <div class="vr-score" id="m-vocal-score">--</div>
         </div>
 
+        <!-- Realistic Smart TV Remote D-Pad Controller -->
+        <div class="card-section remote-hardware-card">
+            <div class="sec-label"><i class="fas fa-gamepad"></i> แผงควบคุมสมาร์ททีวี (Smart TV D-Pad)</div>
+            <div class="dpad-wrapper">
+                <div class="dpad-ring">
+                    <button class="dpad-btn dpad-up" onclick="sendCmd('nav_up')" title="เลื่อนขึ้น">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                    <button class="dpad-btn dpad-left" onclick="sendCmd('nav_left')" title="เลื่อนซ้าย">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="dpad-center" onclick="sendCmd('nav_ok')" title="ตกลง / เลือก (OK)">
+                        <span>OK</span>
+                    </button>
+                    <button class="dpad-btn dpad-right" onclick="sendCmd('nav_right')" title="เลื่อนขวา">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="dpad-btn dpad-down" onclick="sendCmd('nav_down')" title="เลื่อนลง">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick TV Actions -->
+            <div class="remote-nav-actions">
+                <button class="nav-pill-btn" onclick="sendCmd('nav_back')" title="ย้อนกลับ">
+                    <i class="fas fa-undo"></i>
+                    <span>ย้อนกลับ</span>
+                </button>
+                <button class="nav-pill-btn" onclick="sendCmd('nav_home')" title="หน้าแรกทีวี">
+                    <i class="fas fa-home"></i>
+                    <span>หน้าแรก</span>
+                </button>
+                <button class="nav-pill-btn" onclick="sendCmd('nav_search')" title="ค้นหาเพลงบนทีวี">
+                    <i class="fas fa-search"></i>
+                    <span>ค้นหา</span>
+                </button>
+                <button class="nav-pill-btn" onclick="sendCmd('nav_queue')" title="เปิด/ปิดคิวเพลง">
+                    <i class="fas fa-list-ol"></i>
+                    <span>คิวเพลง</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Playback Controls -->
         <div class="card-section">
-            <div class="sec-label"><i class="fas fa-sliders-h"></i> ปุ่มควบคุมหลัก (Playback Controls)</div>
-            <div class="remote-pad-grid">
-                <button class="r-btn primary" onclick="sendCmd('play_pause')">
+            <div class="sec-label"><i class="fas fa-sliders-h"></i> ควบคุมการเล่นเพลง (Playback)</div>
+            <div class="playback-strip">
+                <button class="p-btn secondary" onclick="sendCmd('replay')" title="เริ่มเพลงใหม่">
+                    <i class="fas fa-redo-alt"></i>
+                    <span>เริ่มใหม่</span>
+                </button>
+                <button class="p-btn primary" onclick="sendCmd('play_pause')" title="เล่น / หยุดชั่วคราว">
                     <i class="fas fa-play-circle"></i>
                     <span>เล่น / หยุด</span>
                 </button>
-                <button class="r-btn" onclick="sendCmd('skip')">
+                <button class="p-btn secondary" onclick="sendCmd('skip')" title="ข้ามเพลง">
                     <i class="fas fa-step-forward"></i>
-                    <span>ข้ามเพลง (Skip)</span>
-                </button>
-                <button class="r-btn" onclick="sendCmd('replay')">
-                    <i class="fas fa-redo-alt"></i>
-                    <span>เริ่มเพลงใหม่</span>
-                </button>
-                <button class="r-btn" onclick="sendCmd('toggle_home')">
-                    <i class="fas fa-tv"></i>
-                    <span>สลับหน้าแรกทีวี</span>
+                    <span>ข้ามเพลง</span>
                 </button>
             </div>
 
             <div class="sec-label" style="margin-top: 16px;"><i class="fas fa-volume-up"></i> ปรับระดับเสียง (Volume)</div>
             <div class="vol-row">
-                <button class="vol-btn" onclick="sendCmd('mute_toggle')"><i class="fas fa-volume-mute"></i></button>
-                <button class="vol-btn" onclick="sendCmd('volume_down')"><i class="fas fa-minus"></i></button>
+                <button class="vol-btn" onclick="sendCmd('mute_toggle')" title="เปิด/ปิดเสียง"><i class="fas fa-volume-mute"></i></button>
+                <button class="vol-btn" onclick="sendCmd('volume_down')" title="ลดเสียง"><i class="fas fa-minus"></i></button>
                 <input type="range" id="remote-vol-slider" min="0" max="100" value="100" onchange="sendCmd('set_volume', { volume: this.value })">
-                <button class="vol-btn" onclick="sendCmd('volume_up')"><i class="fas fa-plus"></i></button>
+                <button class="vol-btn" onclick="sendCmd('volume_up')" title="เพิ่มเสียง"><i class="fas fa-plus"></i></button>
             </div>
         </div>
 
@@ -674,7 +941,7 @@
         </button>
     </nav>
 
-    <script src="songs.js?v=3"></script>
+    <script src="songs.js?v=5"></script>
     <script>
         const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
         function getApiEndpoint(target) {
@@ -717,6 +984,9 @@
         }
 
         async function sendCmd(type, payload = {}) {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(18); } catch (e) { }
+            }
             const cmdObj = {
                 id: 'cmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 type: type,

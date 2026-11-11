@@ -887,6 +887,7 @@ function getTvFocusableElements() {
         .chart-icon-btn:not([disabled]),
         .station-card:not([disabled]),
         .playlist-card .sc-btn:not([disabled]),
+        .ctrl-circle-btn:not([disabled]),
         .search-item:not([disabled]),
         .modal-close-btn:not([disabled])
     `;
@@ -2362,6 +2363,75 @@ function executeRemoteCommand(cmd) {
     const p = cmd.payload || {};
 
     switch (cmd.type) {
+        // TV Remote D-Pad Navigation & Controls
+        case 'nav_up':
+            if (isSearchActive) {
+                selectPrevSearchItem();
+            } else {
+                if (!isHomeOpen) openHomeScreen();
+                navigateTvSpatial('up');
+            }
+            break;
+        case 'nav_down':
+            if (isSearchActive) {
+                selectNextSearchItem();
+            } else {
+                if (!isHomeOpen) openHomeScreen();
+                navigateTvSpatial('down');
+            }
+            break;
+        case 'nav_left':
+            if (!isHomeOpen && !isSearchActive) openHomeScreen();
+            navigateTvSpatial('left');
+            break;
+        case 'nav_right':
+            if (!isHomeOpen && !isSearchActive) openHomeScreen();
+            navigateTvSpatial('right');
+            break;
+        case 'nav_ok':
+        case 'nav_enter':
+            if (isSearchActive) {
+                if (searchResults.length > 0 && selectedSearchIndex >= 0) {
+                    const song = searchResults[selectedSearchIndex];
+                    addToQueue(song, sender);
+                    closeSearch();
+                    closeHomeScreen();
+                }
+            } else if (currentTvFocusEl) {
+                currentTvFocusEl.click();
+            } else {
+                const focusables = getTvFocusableElements();
+                if (focusables.length > 0) setTvFocus(focusables[0]);
+            }
+            break;
+        case 'nav_back':
+            if (isSearchActive) {
+                closeSearch();
+            } else if (queueContainer && !queueContainer.classList.contains('collapsed')) {
+                collapseQueue();
+            } else {
+                const remoteModal = document.getElementById('remote-modal');
+                if (remoteModal && !remoteModal.classList.contains('hidden')) {
+                    closeRemoteModal();
+                } else if (!isHomeOpen) {
+                    openHomeScreen();
+                } else {
+                    closeHomeScreen();
+                }
+            }
+            break;
+        case 'nav_home':
+            openHomeScreen();
+            break;
+        case 'nav_search':
+            openSearch();
+            break;
+        case 'nav_queue':
+            if (queueContainer) {
+                if (queueContainer.classList.contains('collapsed')) expandQueue();
+                else collapseQueue();
+            }
+            break;
         case 'play_pause':
             togglePausePlayWithFade();
             break;
@@ -2421,7 +2491,7 @@ function executeRemoteCommand(cmd) {
 
 function spawnFloatingReaction(emoji, label, sender) {
     if (!reactionLayer) return;
-    // Spawn a burst of floating emojis on TV screen
+    // Spawn a burst of floating emojis on TV screen (Silent Graphic Animation only - no sound)
     const count = 4;
     for (let i = 0; i < count; i++) {
         setTimeout(() => {
@@ -2433,16 +2503,10 @@ function spawnFloatingReaction(emoji, label, sender) {
             setTimeout(() => el.remove(), 3300);
         }, i * 140);
     }
-
-    if (emoji === '👏' || emoji === '🎉') {
-        initAudioContext().then(() => playApplause());
-    } else {
-        initAudioContext().then(() => playSuccessDing());
-    }
 }
 
-// Poll remote commands every 900ms
-setInterval(syncHostToServer, 900);
+// Poll remote commands every 500ms for fast D-Pad responsiveness
+setInterval(syncHostToServer, 500);
 
 // ============================================================================
 // SYNTH SOUND EFFECTS & PERSISTENCE UTILITIES
