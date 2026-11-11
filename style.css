@@ -839,14 +839,29 @@ html {
 /* ============================================================================
    SMART TV REMOTE D-PAD NAVIGATION FOCUS (.tv-focused)
    ============================================================================ */
-.tv-focused,
-:focus-visible {
+.tv-focused {
     outline: none !important;
     transform: scale(1.06) !important;
     box-shadow: 0 0 0 3.5px #ffffff, 0 14px 35px rgba(0, 0, 0, 0.85) !important;
     border-color: #ffffff !important;
     z-index: 60 !important;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Explicit focus reset for inputs so typing never triggers white border */
+input,
+input:focus,
+input:focus-visible,
+#search-input,
+#search-input:focus,
+#search-input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    -webkit-appearance: none !important;
 }
 
 .gtv-tab-btn.tv-focused {
@@ -2546,25 +2561,34 @@ body.home-active #now-playing {
 .np-shortcuts-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: clamp(4px, 0.6vw, 10px);
     margin-left: auto;
     margin-right: 14px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 30px;
-    padding: 6px 14px;
+    padding: 5px clamp(6px, 0.7vw, 14px);
     flex-wrap: nowrap;
     flex-shrink: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.np-shortcuts-bar::-webkit-scrollbar {
+    display: none;
 }
 
 .np-hint-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
+    gap: clamp(3px, 0.3vw, 5px);
+    font-size: clamp(9px, 0.72vw, 11px);
     color: var(--text-muted);
     white-space: nowrap;
     transition: color 0.2s;
+    flex-shrink: 0;
 }
 
 .np-hint-item:hover {
@@ -2576,8 +2600,8 @@ body.home-active #now-playing {
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: var(--highlight);
     font-weight: 700;
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: clamp(8px, 0.62vw, 10px);
+    padding: 2px clamp(3px, 0.35vw, 6px);
     border-radius: 4px;
     white-space: nowrap;
     min-width: unset;
@@ -2591,17 +2615,28 @@ body.home-active #now-playing {
     color: #fff;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1440px) {
     .np-shortcuts-bar {
-        gap: 6px;
-        padding: 4px 10px;
+        gap: 5px;
+        padding: 4px 8px;
     }
-    .np-hint-item {
-        font-size: 10px;
+    .np-hint-item:nth-child(1), /* [คลิกเพลง] แทรกเพลง */
+    .np-hint-item:nth-child(7)  /* [Esc] ปิดคิว */ {
+        display: none;
     }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1140px) {
+    .np-shortcuts-bar {
+        gap: 4px;
+        padding: 3px 6px;
+    }
+    .np-hint-item:nth-child(4) /* [รีเซ็ตคิว] */ {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
     .np-shortcuts-bar {
         display: none;
     }

@@ -898,7 +898,7 @@ function getTvFocusableElements() {
 }
 
 function setTvFocus(el) {
-    if (!el) return;
+    if (!el || el.id === 'search-input') return;
     if (currentTvFocusEl) {
         currentTvFocusEl.classList.remove('tv-focused');
     }
@@ -1250,6 +1250,11 @@ searchInput.addEventListener('input', (e) => {
 
 function openSearch() {
     isSearchActive = true;
+    if (currentTvFocusEl) {
+        currentTvFocusEl.classList.remove('tv-focused');
+        currentTvFocusEl = null;
+    }
+    document.querySelectorAll('.tv-focused').forEach(node => node.classList.remove('tv-focused'));
     searchContainer.classList.remove('hidden');
     showInitialSearchSuggestions();
 }
