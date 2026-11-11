@@ -775,6 +775,7 @@ function onYouTubeIframeAPIReady() {
     player = new YT.Player('yt-player', {
         height: '100%',
         width: '100%',
+        host: 'https://www.youtube-nocookie.com',
         playerVars: {
             'autoplay': 1,
             'controls': 0,
@@ -784,7 +785,9 @@ function onYouTubeIframeAPIReady() {
             'modestbranding': 1,
             'iv_load_policy': 3,
             'playsinline': 1,
-            'origin': window.location.origin
+            'enablejsapi': 1,
+            'origin': window.location.origin,
+            'widget_referrer': window.location.href
         },
         events: {
             'onReady': onPlayerReady,

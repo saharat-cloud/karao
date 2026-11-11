@@ -47,8 +47,11 @@ export default async function handler(req, res) {
         return res.status(200).json(memoryState);
     }
 
-    if (action === 'sync_host' && req.method === 'POST') {
-        const payload = req.body || {};
+    if (action === 'sync_host') {
+        let payload = req.body || {};
+        if (typeof payload === 'string') {
+            try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
+        }
         memoryState.hostLastSeen = now;
         if (typeof payload.isPlaying !== 'undefined') memoryState.isPlaying = payload.isPlaying;
         if (typeof payload.volume !== 'undefined') memoryState.volume = payload.volume;
@@ -61,8 +64,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, state: memoryState });
     }
 
-    if (action === 'send_cmd' && req.method === 'POST') {
-        const payload = req.body || {};
+    if (action === 'send_cmd') {
+        let payload = req.body || {};
+        if (typeof payload === 'string') {
+            try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
+        }
         const cmdId = 'cmd_' + now + '_' + Math.random().toString(36).substr(2, 5);
         const newCmd = {
             id: cmdId,
@@ -83,3 +89,4 @@ export default async function handler(req, res) {
 
     return res.status(200).json(memoryState);
 }
+
