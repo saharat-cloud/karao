@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/search.php",
+      "destination": "/api/search"
+    },
+    {
+      "source": "/remote_api.php",
+      "destination": "/api/remote_api"
+    }
+  ]
+}

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Web Karaoke</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#090b10">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;600;700;900&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- TV Power-On Effect (เหมือนเปิดทีวีมาครั้งแรก) -->
+    <div id="tv-power-fx" class="tv-power-fx"></div>
+
+    <div id="app-wrapper">
+        <!-- Google TV Inspired Top Navigation Bar -->
+        <header id="top-navbar" class="gtv-navbar">
+            <div class="gtv-nav-left">
+                <!-- Search Button (Like Assistant / Search on Google TV) -->
+                <button class="gtv-search-trigger" id="top-search-btn" title="พิมพ์ค้นหาเพลง">
+                    <span class="gtv-search-dots">
+                        <i class="dot blue"></i><i class="dot red"></i><i class="dot yellow"></i><i class="dot green"></i>
+                    </span>
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </button>
+
+                <!-- Navigation Tabs (Google TV Style with underline indicator) -->
+                <nav class="gtv-nav-tabs">
+                    <button id="toggle-home-btn" class="gtv-tab-btn active" onclick="scrollToHomeSection('gtv-hero-banner')" title="หน้าแรก">
+                        <span>Home</span>
+                    </button>
+                    <button class="gtv-tab-btn" onclick="scrollToHomeSection('sec-recommended')" title="เพลงแนะนำ">
+                        <span>Discover</span>
+                    </button>
+                    <button class="gtv-tab-btn" onclick="scrollToHomeSection('sec-charts')" title="ชาร์ตเพลง">
+                        <span>Top Charts</span>
+                    </button>
+                    <button class="gtv-tab-btn" onclick="scrollToHomeSection('sec-playlists')" title="เพลย์ลิสต์">
+                        <span>Playlists</span>
+                    </button>
+                    <button id="view-player-btn" class="gtv-tab-btn" title="จอทีวีคาราโอเกะ">
+                        <i class="fas fa-tv" style="font-size:12px; margin-right:4px;"></i><span>จอทีวี</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="gtv-nav-right">
+                <button id="remote-modal-btn" class="gtv-pill-btn" title="สแกน QR รีโมทมือถือ">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>รีโมทมือถือ</span>
+                    <span id="remote-count-badge" class="gtv-badge">QR</span>
+                </button>
+
+                <button id="toggle-queue-btn" class="gtv-pill-btn" title="ดูคิวเพลง">
+                    <i class="fas fa-list-ol"></i>
+                    <span>คิวเพลง</span>
+                    <span id="queue-count-badge" class="gtv-badge">0</span>
+                </button>
+
+                <button id="end-early-btn" class="gtv-icon-btn finish-score-btn" title="ดูคะแนนเสียงร้องเพลงนี้">
+                    <i class="fas fa-trophy"></i>
+                </button>
+
+                <a href="admin.html" class="gtv-icon-btn" title="จัดการเพลง (Admin)">
+                    <i class="fas fa-cog"></i>
+                </a>
+
+                <button id="tv-fullscreen-btn" class="gtv-icon-btn" onclick="toggleTvFullscreen()" title="ขยายเต็มจอทีวี (Fullscreen)">
+                    <i id="tv-fs-icon" class="fas fa-expand"></i>
+                </button>
+
+                <div class="gtv-clock-display" id="gtv-top-clock">--:--</div>
+            </div>
+        </header>
+
+        <!-- Real-Time Vocal Pitch & Quality Assessment HUD (Shown when Vocal Scoring Mode is ON) -->
+        <div id="vocal-hud" class="vocal-hud glass hidden">
+            <div class="vocal-hud-left">
+                <div class="mic-live-badge" id="mic-live-badge">
+                    <i class="fas fa-microphone"></i>
+                    <span id="vocal-note-display">NOTE: --</span>
+                </div>
+                <div class="vocal-bars" id="vocal-visualizer-bars">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="vocal-hud-center">
+                <div class="vocal-status-row">
+                    <span id="vocal-quality-badge" class="quality-tag waiting">🎙️ รอเสียงร้อง</span>
+                    <span id="vocal-live-status" class="vocal-feedback-text">เปล่งเสียงร้องใส่ไมโครโฟนเพื่อวัดระดับเสียง...</span>
+                </div>
+                <div class="vocal-meter-track">
+                    <div class="vocal-meter-zones">
+                        <span>ต้องปรับปรุง</span>
+                        <span>พอใช้</span>
+                        <span>ดี</span>
+                        <span>ดีเยี่ยม 🌟</span>
+                    </div>
+                    <div class="vocal-meter-fill" id="vocal-meter-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="vocal-hud-right">
+                <div class="live-score-box">
+                    <div class="ls-label">คะแนนสะสมสด</div>
+                    <div class="ls-val"><span id="vocal-live-score">0</span><small>/100</small></div>
+                </div>
+                <div id="vocal-combo-badge" class="combo-badge hidden">Combo x1</div>
+            </div>
+        </div>
+
+        <!-- YouTube Player Container -->
+        <div id="player-container">
+            <div id="yt-player"></div>
+            <!-- Empty Player State: Smart TV Karaoke Standby (จอทีวีสแตนด์บายเมื่อเปิดเครื่อง) -->
+            <div id="empty-player-placeholder" class="empty-player-placeholder tv-standby-screen">
+                <!-- Smart TV Top Status Bar -->
+                <div class="tv-standby-topbar">
+                    <div class="tv-status-badge">
+                        <span class="tv-live-dot"></span>
+                        <span>SMART TV KARAOKE • STANDBY</span>
+                    </div>
+                    <div class="tv-clock-group">
+                        <span id="tv-standby-date" class="tv-date">-</span>
+                        <span id="tv-standby-clock" class="tv-clock">--:--:--</span>
+                    </div>
+                </div>
+
+                <!-- TV Main Standby Hero Area -->
+                <div class="tv-standby-content">
+                    <!-- Left: TV Brand & Instant Song Actions -->
+                    <div class="tv-standby-left glass">
+                        <div class="tv-brand-badge">
+                            <i class="fas fa-tv"></i> PREMIUM KARAOKE TV BOX
+                        </div>
+                        <h1 class="tv-standby-title">
+                            ระบบพร้อมใช้งาน <span>เริ่มร้องเพลงได้เลย!</span>
+                        </h1>
+                        <p class="tv-standby-desc">
+                            พิมพ์ชื่อเพลงบนคีย์บอร์ดเพื่อร้องได้ทันที หรือเลือกเพลงจากคลังเพลง
+                        </p>
+
+                        <div class="tv-actions-row">
+                            <button class="btn-primary-glow tv-btn-lg" onclick="openHomeScreen()">
+                                <i class="fas fa-compass"></i> เปิดคลังเพลง (หน้าแรก)
+                            </button>
+                            <button class="btn-secondary-glass tv-btn-lg" onclick="openSearch(); setTimeout(() => document.getElementById('search-input').focus(), 50);">
+                                <i class="fas fa-search"></i> พิมพ์ค้นหาเพลง
+                            </button>
+                            <button class="btn-secondary-glass tv-btn-lg" onclick="playRandomHitSong()">
+                                <i class="fas fa-random"></i> สุ่มเพลงฮิตร้องเลย
+                            </button>
+                        </div>
+
+                        <!-- Typing quick hint banner -->
+                        <div class="tv-typing-hint">
+                            <i class="fas fa-keyboard"></i>
+                            <span>พิมพ์ชื่อเพลงหรือศิลปินบนแป้นพิมพ์ได้ตลอดเวลา หน้าค้นหาจะเปิดขึ้นมาอัตโนมัติ</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Mobile Remote QR Code (เหมือนตู้คาราโอเกะรุ่นใหม่) -->
+                    <div class="tv-standby-right glass">
+                        <div class="tv-qr-card-header">
+                            <i class="fas fa-mobile-alt"></i>
+                            <div>
+                                <h3>รีโมทมือถือไร้สาย</h3>
+                                <p>สแกน QR Code ด้วยมือถือเพื่อสั่งเพลง</p>
+                            </div>
+                        </div>
+
+                        <div class="tv-qr-box">
+                            <img id="tv-standby-qr-img" src="" alt="Mobile Remote QR" class="tv-qr-img">
+                            <div class="tv-qr-scanline"></div>
+                        </div>
+
+                        <div class="tv-qr-footer">
+                            <span class="tv-ip-label" id="tv-standby-ip-text">กำลังโหลดที่อยู่รีโมท...</span>
+                            <div class="tv-device-status"><i class="fas fa-wifi"></i> เชื่อมต่อ Wi-Fi เดียวกัน</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart TV Bottom Controls Navigation Guide -->
+                <div class="tv-standby-bottombar">
+                    <div class="tv-remote-hint"><kbd>Space</kbd> <span>หยุด / เล่น</span></div>
+                    <div class="tv-remote-hint"><kbd>Home</kbd> <span>เริ่มใหม่</span></div>
+                    <div class="tv-remote-hint"><kbd>End</kbd> <span>ข้ามเพลง</span></div>
+                    <div class="tv-remote-hint"><kbd>&uarr;&darr;</kbd> <span>ดูคิวเพลง</span></div>
+                    <div class="tv-remote-hint"><kbd>Enter</kbd> <span>แทรกเพลง</span></div>
+                    <div class="tv-remote-hint"><kbd>Esc</kbd> <span>ปิดคิว</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Podium Area (Appears below video natively in Flex) -->
+        <div id="podium-area" class="hidden">
+            <div class="podium-header">
+                <div><i class="fas fa-crown" style="color: gold;"></i> ทำเนียบแชมป์ <span id="mic-status-icon"
+                        class="status-off"><i class="fas fa-microphone-slash"></i></span></div>
+            </div>
+            <div id="podium-display">
+                <!-- Ranks injected here -->
+            </div>
+        </div>
+
+        <!-- Currently Playing Footer UI (Moved out of overlay for Flex Flow) -->
+        <div id="now-playing" class="hidden">
+            <div class="np-main-info">
+                <div class="np-info">
+                    <div class="np-label"><span class="live-pulse"></span> กำลังเล่น</div>
+                    <div id="np-title" class="np-title">ชื่อเพลง</div>
+                    <div id="np-artist" class="np-artist">ศิลปิน</div>
+                </div>
+                <div id="next-up-box" class="next-up-info">
+                    <div class="nu-label">คิวถัดไป</div>
+                    <div id="nu-title" class="nu-title">-</div>
+                </div>
+            </div>
+
+            <!-- Horizontal Shortcuts Bar (เรียงไว้แถบล่าง ข้างปุ่มควบคุม) -->
+            <div class="np-shortcuts-bar">
+                <div class="np-hint-item" title="คลิกเพลงในคิวเพื่อแทรกขึ้นมาร้องทันที"><span class="q-key"><i class="fas fa-mouse-pointer"></i> คลิกเพลง</span> <span>แทรกเพลง</span></div>
+                <div class="np-hint-item" title="กดลูกศรขึ้น/ลง เพื่อเลือกเพลงในคิว"><span class="q-key">▲ / ▼</span> <span>เลือกคิว</span></div>
+                <div class="np-hint-item" title="กด Enter เพื่อแทรกเพลงที่เลือกมาเล่น"><span class="q-key">Enter</span> <span>แทรกเล่นทันที</span></div>
+                <div class="np-hint-item" onclick="confirmClearQueue()" style="cursor:pointer;" title="คลิกเพื่อรีเซ็ตล้างคิวเพลงทั้งหมด"><span class="q-key"><i class="fas fa-trash-alt"></i></span> <span>รีเซ็ตคิว</span></div>
+                <div class="np-hint-item" title="กด Space เพื่อหยุดหรือเล่นต่อ"><span class="q-key">Space</span> <span>หยุด/เล่น</span></div>
+                <div class="np-hint-item" title="กด Home เพื่อเริ่มเพลงใหม่ | End เพื่อข้ามเพลง"><span class="q-key">Home/End</span> <span>เริ่มใหม่/ข้าม</span></div>
+                <div class="np-hint-item" title="กด Esc เพื่อปิดแถบคิว"><span class="q-key">Esc</span> <span>ปิดคิว</span></div>
+            </div>
+
+            <div class="np-player-controls">
+                <button class="ctrl-circle-btn" onclick=" openHomeScreen() " title="เปิดหน้าแรกเลือกเพลงเพิ่ม">
+                    <i class="fas fa-compass"></i>
+                </button>
+                <button class="ctrl-circle-btn" onclick="togglePausePlayWithFade()" title="เล่น/หยุด (Spacebar)">
+                    <i id="np-play-icon" class="fas fa-pause"></i>
+                </button>
+                <button class="ctrl-circle-btn" onclick="replayCurrentSong()" title="เริ่มเพลงใหม่ (Home)">
+                    <i class="fas fa-redo-alt"></i>
+                </button>
+                <button class="ctrl-circle-btn" onclick="skipSong()" title="ข้ามเพลง (End)">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <div class="volume-mini-control">
+                    <button class="ctrl-circle-btn sm" onclick="toggleMuteVolume()" title="เปิด/ปิดเสียง">
+                        <i id="np-vol-icon" class="fas fa-volume-up"></i>
+                    </button>
+                    <input type="range" id="np-volume-slider" min="0" max="100" value="100" title="ระดับเสียง">
+                </div>
+            </div>
+        </div>
+
+    <!-- =======================================================================
+         GOOGLE TV STYLE HOME SCREEN HUB (หน้าแรก สไตล์ Google TV)
+         ======================================================================= -->
+    <div id="home-screen" class="home-screen gtv-home-screen">
+        <div class="home-scroll-container gtv-scroll-container">
+
+            <!-- Floating Now Playing Return Banner (Visible when a song is playing in background) -->
+            <div id="home-now-playing-banner" class="home-np-banner glass hidden">
+                <div class="home-np-left">
+                    <span class="playing-bars"><i></i><i></i><i></i></span>
+                    <div>
+                        <div class="home-np-label">กำลังเล่นเพลงอยู่เบื้องหลัง</div>
+                        <div id="home-np-title" class="home-np-title">-</div>
+                    </div>
+                </div>
+                <div class="home-np-actions">
+                    <button class="btn-return-video" onclick="closeHomeScreen()">
+                        <i class="fas fa-tv"></i> กลับไปหน้าจอร้องเพลงเต็มจอ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Immersive Google TV Hero Spotlight Banner -->
+            <section class="gtv-hero-banner" id="gtv-hero-banner">
+                <div class="gtv-hero-backdrop" id="gtv-hero-backdrop" style="background-image: url('hero-banner.jpg');"></div>
+                <div class="gtv-hero-gradient"></div>
+                <div class="gtv-hero-content">
+                    <div class="gtv-hero-tag">
+                        <i class="fas fa-sparkles" style="color: #FFD700;"></i> SMART TV KARAOKE • เปิดเวทีร้องเพลงสุดมันส์
+                    </div>
+                    <h1 class="gtv-hero-title" id="gtv-hero-title">
+                        ร้องเพลงโปรดของคุณ ปลดปล่อยพลังเสียงให้สุดเหวี่ยง
+                    </h1>
+                    <p class="gtv-hero-desc" id="gtv-hero-desc">
+                        เลือกเพลงฮิตจากชาร์ต สแกนรีโมทมือถือ หรือพิมพ์ชื่อเพลงบนคีย์บอร์ดแล้วเริ่มร้องได้ทันที &bull; ระบบพร้อมวัดคะแนนเสียงร้องอัตโนมัติ
+                    </p>
+                    <div class="gtv-hero-actions">
+                        <button class="gtv-btn-play" onclick="openSearch(); setTimeout(() => document.getElementById('search-input').focus(), 50);">
+                            <i class="fas fa-search"></i> ค้นหาเพลง
+                        </button>
+                        <button class="gtv-btn-queue" id="gtv-hero-play-btn" onclick="playHeroSpotlightSong()">
+                            <i class="fas fa-play"></i> เริ่มร้องเพลงเลย
+                        </button>
+                        <button class="gtv-btn-glass" onclick="playRandomHitSong()">
+                            <i class="fas fa-random"></i> สุ่มเพลงฮิต
+                        </button>
+                        <button class="gtv-btn-glass" onclick="openRemoteModal()">
+                            <i class="fas fa-qrcode"></i> เชื่อมต่อรีโมท
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 1: Favorite Apps / Categories Bar (เหมือนแถบ Favorite Apps ในภาพตัวอย่าง) -->
+            <section class="gtv-row gtv-apps-row">
+                <div class="gtv-row-header">
+                    <span class="gtv-row-title">หมวดหมู่ด่วน (Favorite Categories)</span>
+                </div>
+                <div class="gtv-apps-grid">
+                    <div class="gtv-app-card app-rec" onclick="scrollToHomeSection('sec-recommended')">
+                        <div class="app-icon"><i class="fas fa-magic"></i></div>
+                        <span class="app-name">เพลงแนะนำ</span>
+                    </div>
+                    <div class="gtv-app-card app-charts" onclick="scrollToHomeSection('sec-charts')">
+                        <div class="app-icon"><i class="fas fa-trophy"></i></div>
+                        <span class="app-name">Top Charts</span>
+                    </div>
+                    <div class="gtv-app-card app-stations" onclick="scrollToHomeSection('sec-stations')">
+                        <div class="app-icon"><i class="fas fa-broadcast-tower"></i></div>
+                        <span class="app-name">สถานีเพลง</span>
+                    </div>
+                    <div class="gtv-app-card app-playlists" onclick="scrollToHomeSection('sec-playlists')">
+                        <div class="app-icon"><i class="fas fa-compact-disc"></i></div>
+                        <span class="app-name">เพลย์ลิสต์</span>
+                    </div>
+                    <div class="gtv-app-card app-remote" onclick="openRemoteModal()">
+                        <div class="app-icon"><i class="fas fa-qrcode"></i></div>
+                        <span class="app-name">รีโมทมือถือ</span>
+                    </div>
+                    <div class="gtv-app-card app-random" onclick="playRandomHitSong()">
+                        <div class="app-icon"><i class="fas fa-random"></i></div>
+                        <span class="app-name">สุ่มเพลงร้อง</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 2: Play Next / เพลงแนะนำ (เหมือนแถบ Play Next ในภาพตัวอย่าง 16:9 cards) -->
+            <section id="sec-recommended" class="gtv-row">
+                <div class="gtv-row-header">
+                    <h2 class="gtv-row-title">เพลงแนะนำสำหรับคุณ (Play Next)</h2>
+                    <button class="gtv-sec-action" onclick="shuffleRecommendedSongs()">
+                        <i class="fas fa-sync-alt"></i> สุ่มเพลงแนะนำใหม่
+                    </button>
+                </div>
+                <div id="recommended-songs-grid" class="gtv-cards-grid"></div>
+            </section>
+
+            <!-- Row 3: Top Charts (เหมือนแถว YouTube / หนังในภาพตัวอย่าง) -->
+            <section id="sec-charts" class="gtv-row">
+                <div class="gtv-row-header">
+                    <h2 class="gtv-row-title">ชาร์ตเพลงคาราโอเกะยอดนิยม (Top 10 Charts)</h2>
+                    <button class="gtv-sec-action gold" onclick="playAllTopChart()">
+                        <i class="fas fa-play"></i> เล่นเพลงในชาร์ต
+                    </button>
+                </div>
+                <div id="top-chart-list" class="top-chart-grid"></div>
+            </section>
+
+            <!-- Row 4: Music Stations -->
+            <section id="sec-stations" class="gtv-row">
+                <div class="gtv-row-header">
+                    <h2 class="gtv-row-title">สถานีเพลงต่อเนื่อง (Music Stations)</h2>
+                </div>
+                <div id="stations-grid" class="stations-grid"></div>
+            </section>
+
+            <!-- Row 5: Playlists -->
+            <section id="sec-playlists" class="gtv-row">
+                <div class="gtv-row-header">
+                    <h2 class="gtv-row-title">เพลย์ลิสต์คัดพิเศษ (Curated Playlists)</h2>
+                </div>
+                <div id="playlists-grid" class="playlists-grid"></div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- UI Overlay container for items that SHOULD stay absolute (Welcome, Search, Queue, Score, Toast) -->
+    <div id="ui-overlay">
+
+        <!-- Live Floating Reactions Layer (Sent from Mobile Remote) -->
+        <div id="reaction-layer"></div>
+
+
+        <!-- Playlist Detail Modal -->
+        <div id="playlist-modal" class="overlay-modal hidden" onclick="closePlaylistModal()">
+            <div class="playlist-modal-box glass" onclick="event.stopPropagation()">
+                <div class="pm-header" id="pm-header-bg">
+                    <div class="pm-title-group">
+                        <div class="pm-badge"><i class="fas fa-compact-disc"></i> PLAYLIST</div>
+                        <h2 id="pm-title">ชื่อเพลย์ลิสต์</h2>
+                        <p id="pm-desc">รายละเอียดเพลย์ลิสต์</p>
+                    </div>
+                    <div class="pm-head-actions">
+                        <button id="pm-play-all-btn" class="hero-btn primary sm"><i class="fas fa-play"></i> เล่นทั้งหมด</button>
+                        <button id="pm-queue-all-btn" class="hero-btn secondary sm"><i class="fas fa-plus"></i> เพิ่มเข้าคิวทั้งหมด</button>
+                        <button class="modal-close-btn" onclick="closePlaylistModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div id="pm-song-list" class="pm-song-list"></div>
+            </div>
+        </div>
+
+        <!-- Mobile Remote Control QR Modal -->
+        <div id="remote-modal" class="overlay-modal hidden" onclick="closeRemoteModal()">
+            <div class="remote-modal-box glass" onclick="event.stopPropagation()">
+                <button class="modal-close-btn abs-top-right" onclick="closeRemoteModal()"><i class="fas fa-times"></i></button>
+                <div class="rm-header">
+                    <div class="rm-icon"><i class="fas fa-mobile-alt"></i></div>
+                    <h2>เชื่อมต่อมือถือเป็นรีโมทคาราโอเกะ</h2>
+                    <p>สแกน QR Code ด้วยกล้องโทรศัพท์มือถือ (เชื่อมต่อ Wi-Fi / เครือข่ายเดียวกัน)</p>
+                </div>
+
+                <div class="rm-body">
+                    <div class="qr-card">
+                        <img id="remote-qr-img" src="" alt="QR Code สำหรับรีโมทมือถือ" />
+                        <div class="room-code-pill">รหัสห้อง: <strong id="remote-room-code">KTV-888</strong></div>
+                    </div>
+
+                    <div class="rm-instructions">
+                        <div class="rm-step">
+                            <span class="step-num">1</span>
+                            <div>
+                                <strong>สแกน QR Code หรือเปิดลิงก์บนมือถือ</strong>
+                                <p>ไม่ต้องโหลดแอป เปิดผ่านเบราว์เซอร์บนมือถือได้ทันที</p>
+                            </div>
+                        </div>
+                        <div class="rm-step">
+                            <span class="step-num">2</span>
+                            <div>
+                                <strong>ค้นหาเพลง & จัดคิวได้จากที่นั่ง</strong>
+                                <p>เลือกเพลงฮิต สถานีเพลง ค้นหาเพลง YouTube เพิ่มหรือแทรกคิวได้ทันที</p>
+                            </div>
+                        </div>
+                        <div class="rm-step">
+                            <span class="step-num">3</span>
+                            <div>
+                                <strong>ควบคุมการเล่น วัดคะแนน & ส่งเอฟเฟกต์ขึ้นจอ</strong>
+                                <p>กดข้ามเพลง ปรับระดับเสียง เปิดโหมดวัดคะแนน หรือส่งเสียงปรบมือ/หัวใจขึ้นจอทีวี!</p>
+                            </div>
+                        </div>
+
+                        <div class="rm-url-box">
+                            <label>ลิงก์สำหรับเข้าผ่านมือถือ (สามารถเปลี่ยน IP ได้หากมีหลายเครือข่าย):</label>
+                            <div class="rm-url-input-row">
+                                <input type="text" id="remote-url-input" value="" onchange="updateRemoteQrFromInput()" />
+                                <button class="btn-copy-url" onclick="copyRemoteUrl()"><i class="fas fa-copy"></i> คัดลอก</button>
+                            </div>
+                            <div id="remote-ip-chips" class="rm-ip-chips"></div>
+                        </div>
+
+                        <div class="rm-footer-actions">
+                            <a id="open-remote-preview-btn" href="remote.html" target="_blank" class="hero-btn primary sm">
+                                <i class="fas fa-external-link-alt"></i> เปิดหน้ารีโมทมือถือ (ทดสอบในเครื่อง)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Reveal UI (Hidden by default) -->
+        <div id="score-screen" class="hidden">
+            <div class="score-modal glass">
+                <div class="score-title" id="score-screen-title"><i class="fas fa-microphone-alt"></i> คะแนนของคุณ</div>
+
+                <div class="score-main-row">
+                    <div class="score-number-container">
+                        <span id="score-number">0</span>
+                        <div id="score-grade-badge" class="score-grade-badge">A</div>
+                    </div>
+
+                    <div id="score-breakdown-box" class="score-breakdown-box hidden">
+                        <div id="score-verdict-pill" class="score-verdict-pill">🌟 เสียงร้องดีมาก!</div>
+                        <div class="breakdown-item">
+                            <div class="bd-label"><span>🎯 ความแม่นยำของคีย์ (Pitch)</span><strong id="bd-pitch-val">0%</strong></div>
+                            <div class="bd-bar"><div id="bd-pitch-fill" class="bd-fill pitch"></div></div>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="bd-label"><span>💪 พลังเสียงและความนิ่ง (Power)</span><strong id="bd-power-val">0%</strong></div>
+                            <div class="bd-bar"><div id="bd-power-fill" class="bd-fill power"></div></div>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="bd-label"><span>🎶 จังหวะและการออกเสียง (Rhythm)</span><strong id="bd-rhythm-val">0%</strong></div>
+                            <div class="bd-bar"><div id="bd-rhythm-fill" class="bd-fill rhythm"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="score-message" class="score-message">กำลังวิเคราะห์เสียง...</div>
+                <div id="score-coach-advice" class="score-coach-advice"></div>
+
+                <div class="score-input-box hidden" id="score-name-input-box">
+                    <p>สุดยอด! คุณติดอันดับ Top 5</p>
+                    <div class="input-save-group">
+                        <input type="text" id="score-hero-name" placeholder="ใส่ชื่อของคุณ..." maxlength="15"
+                            autocomplete="off">
+                        <button id="save-score-btn" class="glass"><i class="fas fa-save"></i> บันทึก</button>
+                    </div>
+                </div>
+                <!-- Score History Modal -->
+                <div class="score-modal-actions" style="display:flex; justify-content:center; gap:10px; margin-top:14px;">
+                    <button class="sec-action-btn" onclick="openScoreHistoryModal()"><i class="fas fa-history"></i> ประวัติคะแนนทุกเพลง</button>
+                    <button class="sec-action-btn" onclick="closeScoreModalNow()"><i class="fas fa-play"></i> เล่นเพลงถัดไปเลย</button>
+                </div>
+                <div class="score-countdown" id="score-countdown">เล่นเพลงถัดไปใน 8 วินาที...</div>
+            </div>
+        </div>
+
+        <!-- Score History Modal -->
+        <div id="score-history-modal" class="overlay-modal hidden" onclick="closeScoreHistoryModal()">
+            <div class="playlist-modal-box glass" onclick="event.stopPropagation()">
+                <div class="pm-header" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 51, 102, 0.5));">
+                    <div class="pm-title-group">
+                        <div class="pm-badge"><i class="fas fa-history"></i> VOCAL SCORE HISTORY</div>
+                        <h2>ประวัติการวัดคะแนนเสียงร้อง</h2>
+                        <p>บันทึกประวัติการร้องเพลงและคะแนนที่ทำได้ในแต่ละเพลง</p>
+                    </div>
+                    <div class="pm-head-actions">
+                        <button class="modal-close-btn" onclick="closeScoreHistoryModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div id="score-history-list" class="pm-song-list"></div>
+            </div>
+        </div>
+
+        <!-- Search UI (Hidden by default, shown while typing) -->
+        <div id="search-container" class="hidden">
+            <div class="search-header">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-input" placeholder="พิมพ์ชื่อเพลงหรือศิลปินได้เลย..." autocomplete="off">
+                <div class="search-hint">กด <kbd>Enter</kbd> เพื่อเลือก | <kbd>Esc</kbd> ปิด</div>
+                <button class="search-close-btn" onclick="closeSearch()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="search-results">
+                <!-- Search results injected here -->
+            </div>
+        </div>
+
+        <!-- Queue Sidebar UI -->
+        <div id="queue-container" class="collapsed">
+            <div class="queue-header">
+                <h3><i class="fas fa-list-ol"></i> คิวเพลงถัดไป</h3>
+                <div class="queue-header-actions">
+                    <button class="queue-clear-btn" onclick="event.stopPropagation(); confirmClearQueue()" title="รีเซ็ตล้างคิวเพลงทั้งหมด">
+                        <i class="fas fa-trash-alt"></i> ล้างคิว
+                    </button>
+                    <button class="queue-close-btn" onclick="event.stopPropagation(); collapseQueue()" title="ปิดแถบคิว">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="queue-list">
+                <!-- Queue items injected here -->
+                <div class="queue-empty">ยังไม่มีเพลงในคิว<br><small>พิมพ์เพื่อค้นหา</small></div>
+            </div>
+        </div>
+
+
+
+        <!-- Toast Notifications -->
+        <div id="toast-container"></div>
+    </div>
+    </div>
+
+    <!-- Load Data and Logic -->
+    <script src="songs.js"></script>
+    <script src="app.js"></script>
+    <!-- Load YouTube API asynchronously -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+
+</html>

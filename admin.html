@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karaoke Admin - จัดการเพลง</title>
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="logo">
+                <i class="fas fa-microphone-alt"></i>
+                <span>KaraokeAdmin</span>
+            </div>
+            <nav>
+                <a href="#songs" class="nav-link active" data-section="songs"><i class="fas fa-music"></i>
+                    รายการเพลง</a>
+                <a href="#add" class="nav-link" data-section="add"><i class="fas fa-plus-circle"></i> เพิ่มเพลง</a>
+                <a href="index.html" class="nav-link" target="_blank"><i class="fas fa-tv"></i> เปิดหน้าคาราโอเกะ</a>
+            </nav>
+        </aside>
+
+        <main id="content">
+            <!-- Song List Section -->
+            <section id="section-songs" class="section active">
+                <div class="section-header">
+                    <h1><i class="fas fa-list"></i> รายการเพลงทั้งหมด</h1>
+                    <div class="header-actions">
+                        <input type="text" id="filter-input" placeholder="🔍 ค้นหาใน Admin..."
+                            oninput="filterSongs(this.value)">
+                        <button class="btn btn-danger" onclick="resetToDefault()"><i class="fas fa-sync"></i>
+                            รีเซ็ตเป็นค่าเริ่มต้น</button>
+                    </div>
+                </div>
+                <div id="song-list-container">
+                    <!-- Song cards rendered here -->
+                </div>
+            </section>
+
+            <!-- Add Song Section -->
+            <section id="section-add" class="section">
+                <div class="section-header">
+                    <h1><i class="fas fa-plus-circle"></i> เพิ่มเพลงใหม่</h1>
+                </div>
+
+                <!-- Auto-Search Panel -->
+                <div class="card auto-search-card">
+                    <h3><i class="fas fa-magic"></i> ตัวช่วยค้นหาอัตโนมัติ</h3>
+                    <p class="hint">พิมพ์ชื่อเพลง ระบบจะค้นหาวิดีโอคาราโอเกะที่รองรับการฝังในเว็บให้อัตโนมัติ</p>
+                    <div class="search-row">
+                        <input type="text" id="auto-search-input" placeholder="เช่น: ราตรีสวัสดิ์ คาราโอเกะ..." />
+                        <button class="btn btn-accent" onclick="autoSearch()" id="auto-search-btn">
+                            <i class="fas fa-search"></i> ค้นหาอัตโนมัติ
+                        </button>
+                    </div>
+                    <div id="auto-results" class="auto-results hidden"></div>
+                </div>
+
+                <!-- Manual Add Form -->
+                <div class="card">
+                    <h3><i class="fas fa-edit"></i> เพิ่มด้วยตนเอง</h3>
+                    <p class="hint">วางลิงค์ YouTube หรือรหัสวิดีโอ (11 ตัวอักษร) ได้เลย ระบบจะตรวจสอบให้อัตโนมัติ</p>
+                    <div class="form-grid">
+                        <label>ชื่อเพลง <span class="required">*</span></label>
+                        <input type="text" id="form-title" placeholder="เช่น: ราตรีสวัสดิ์ (คาราโอเกะ)" />
+
+                        <label>ศิลปิน <span class="required">*</span></label>
+                        <input type="text" id="form-artist" placeholder="เช่น: ไมโคร" />
+
+                        <label>ลิงค์ YouTube / Video ID <span class="required">*</span></label>
+                        <div class="url-row">
+                            <input type="text" id="form-url"
+                                placeholder="https://youtube.com/watch?v=... หรือ AbcDeFgHiJk"
+                                oninput="parseYouTubeUrl(this.value)" />
+                            <button class="btn btn-secondary" onclick="testVideo()"><i class="fas fa-play"></i>
+                                ทดสอบ</button>
+                        </div>
+
+                        <label>Video ID ที่ตรวจพบ</label>
+                        <input type="text" id="form-ytid" placeholder="จะปรากฏที่นี่หลังพิมพ์ URL" readonly />
+                    </div>
+
+                    <!-- Preview -->
+                    <div id="preview-container" class="preview-container hidden">
+                        <h4><i class="fas fa-eye"></i> ตัวอย่างวิดีโอ</h4>
+                        <div class="preview-wrapper">
+                            <iframe id="preview-player" src="" frameborder="0" allowfullscreen
+                                allow="autoplay"></iframe>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="addSong()"><i class="fas fa-save"></i>
+                            บันทึกเพลง</button>
+                        <button class="btn btn-secondary" onclick="clearForm()"><i class="fas fa-times"></i>
+                            ล้างฟอร์ม</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="modal-overlay" class="hidden" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3><i class="fas fa-edit"></i> แก้ไขเพลง</h3>
+            <div class="form-grid">
+                <label>ชื่อเพลง</label>
+                <input type="text" id="modal-title" />
+                <label>ศิลปิน</label>
+                <input type="text" id="modal-artist" />
+                <label>Video ID</label>
+                <input type="text" id="modal-ytid" />
+            </div>
+            <input type="hidden" id="modal-song-id" />
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="saveEdit()"><i class="fas fa-save"></i> บันทึก</button>
+                <button class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="songs.js"></script>
+    <script src="admin.js"></script>
+</body>
+
+</html>

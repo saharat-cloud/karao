@@ -1,0 +1,22 @@
+{
+  "name": "Premium Karaoke TV",
+  "short_name": "Karaoke TV",
+  "description": "Smart TV Web Karaoke Player & Remote System",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#090b10",
+  "theme_color": "#090b10",
+  "icons": [
+    {
+      "src": "cover-bg.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "cover-bg.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

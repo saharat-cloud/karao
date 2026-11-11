@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>รีโมทมือถือ - Premium Karaoke Remote</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF3366;
+            --primary-glow: rgba(255, 51, 102, 0.45);
+            --gold: #FFD700;
+            --cyan: #00D2FF;
+            --highlight: #20C997;
+            --bg-dark: #0A0A12;
+            --card-bg: rgba(24, 24, 38, 0.88);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #FFFFFF;
+            --muted: #9A9AB5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(circle at top, rgba(255, 51, 102, 0.18), var(--bg-dark) 50%);
+            background-color: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 85px;
+        }
+
+        /* Header */
+        .remote-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(12, 12, 22, 0.92);
+            backdrop-filter: blur(14px);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .rh-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rh-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), #FF6B6B);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .rh-title {
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .rh-status {
+            font-size: 11px;
+            color: var(--highlight);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--highlight);
+            display: inline-block;
+        }
+
+        .user-name-box {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 10px;
+            gap: 6px;
+        }
+
+        .user-name-box i {
+            font-size: 11px;
+            color: var(--cyan);
+        }
+
+        #remote-user-name {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 12px;
+            width: 85px;
+        }
+
+        /* Main Content Container */
+        .tab-panel {
+            display: none;
+            padding: 16px;
+            max-width: 540px;
+            margin: 0 auto;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Now Playing Card */
+        .np-card {
+            background: linear-gradient(135deg, rgba(255, 51, 102, 0.2), rgba(24, 24, 40, 0.92));
+            border: 1px solid rgba(255, 51, 102, 0.35);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .np-thumb {
+            width: 80px;
+            height: 54px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #111;
+            flex-shrink: 0;
+        }
+
+        .np-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .np-badge {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .np-song-title {
+            font-size: 15px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .np-song-artist {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* Live Vocal Score Banner on Remote */
+        .vocal-remote-banner {
+            background: rgba(255, 215, 0, 0.12);
+            border: 1px solid rgba(255, 215, 0, 0.35);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vr-left {
+            font-size: 12px;
+        }
+
+        .vr-left strong {
+            color: var(--gold);
+            display: block;
+            font-size: 13px;
+        }
+
+        .vr-score {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        /* Control Grid */
+        .card-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .sec-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .remote-pad-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .r-btn {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 15px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .r-btn i {
+            font-size: 22px;
+        }
+
+        .r-btn:active {
+            transform: scale(0.95);
+        }
+
+        .r-btn.primary {
+            background: linear-gradient(135deg, var(--primary), #FF6B6B);
+            border: none;
+            box-shadow: 0 6px 18px var(--primary-glow);
+        }
+
+        .r-btn.gold {
+            background: linear-gradient(135deg, #FFD700, #FF9900);
+            color: #111;
+            border: none;
+        }
+
+        .r-btn.green {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: #000;
+            border: none;
+        }
+
+        /* Volume Row */
+        .vol-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .vol-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #remote-vol-slider {
+            flex: 1;
+            accent-color: var(--primary);
+            height: 6px;
+        }
+
+        /* Reactions Grid */
+        .reaction-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .react-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 6px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .react-btn span.emo {
+            font-size: 24px;
+        }
+
+        .react-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 51, 102, 0.25);
+        }
+
+        /* Search & Song List */
+        .search-bar-wrap {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .search-bar-wrap input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-bar-wrap button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 0 18px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .m-song-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .m-song-item img {
+            width: 64px;
+            height: 42px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .m-song-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .m-song-title {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .m-song-artist {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .m-song-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .m-btn {
+            border: none;
+            padding: 7px 10px;
+            border-radius: 9px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .m-btn.queue {
+            background: var(--highlight);
+            color: #000;
+        }
+
+        .m-btn.play {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .m-btn.del {
+            background: rgba(255, 82, 82, 0.2);
+            color: #ff5252;
+        }
+
+        /* Station chips on mobile */
+        .m-station-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .m-station-card {
+            padding: 14px;
+            border-radius: 14px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .m-station-card small {
+            display: block;
+            font-weight: 400;
+            font-size: 10px;
+            opacity: 0.85;
+            margin-top: 3px;
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(12, 12, 22, 0.96);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .b-nav-item {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            padding: 6px 14px;
+        }
+
+        .b-nav-item i {
+            font-size: 19px;
+        }
+
+        .b-nav-item.active {
+            color: var(--primary);
+        }
+
+        .q-badge {
+            position: absolute;
+            top: 2px;
+            right: 8px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+
+        /* Toast */
+        #m-toast {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 32, 0.95);
+            border: 1.5px solid var(--primary);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 999;
+            display: none;
+            white-space: nowrap;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Top Header -->
+    <header class="remote-header">
+        <div class="rh-brand">
+            <div class="rh-logo"><i class="fas fa-mobile-alt"></i></div>
+            <div>
+                <div class="rh-title">Karaoke Remote</div>
+                <div class="rh-status"><span class="status-dot"></span> <span id="conn-status-text">เชื่อมต่อพร้อมใช้งาน</span></div>
+            </div>
+        </div>
+        <div class="user-name-box">
+            <i class="fas fa-user"></i>
+            <input type="text" id="remote-user-name" placeholder="ชื่อของคุณ..." value="วัยรุ่นเทสดี" maxlength="12">
+        </div>
+    </header>
+
+    <div id="m-toast"></div>
+
+    <!-- TAB 1: REMOTE PAD (รีโมทควบคุม) -->
+    <section id="tab-remote" class="tab-panel active">
+        <div class="np-card">
+            <img id="m-np-thumb" class="np-thumb" src="cover-bg.jpg" alt="">
+            <div class="np-details">
+                <div class="np-badge" id="m-np-status">กำลังเล่นบนจอหลัก</div>
+                <div class="np-song-title" id="m-np-title">ยังไม่มีเพลงที่กำลังเล่น</div>
+                <div class="np-song-artist" id="m-np-artist">เลือกเพลงจากแท็บค้นหาหรือเพลงฮิตได้เลย</div>
+            </div>
+        </div>
+
+        <!-- Live Vocal Score Status -->
+        <div class="vocal-remote-banner">
+            <div class="vr-left">
+                <strong><i class="fas fa-microphone-alt"></i> ระบบวัดเสียงร้อง AI</strong>
+                <span id="m-vocal-eval">กดเปิดวัดเสียงร้องเพื่อประเมินคะแนน</span>
+            </div>
+            <div class="vr-score" id="m-vocal-score">--</div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="card-section">
+            <div class="sec-label"><i class="fas fa-sliders-h"></i> ปุ่มควบคุมหลัก (Playback Controls)</div>
+            <div class="remote-pad-grid">
+                <button class="r-btn primary" onclick="sendCmd('play_pause')">
+                    <i class="fas fa-play-circle"></i>
+                    <span>เล่น / หยุด</span>
+                </button>
+                <button class="r-btn" onclick="sendCmd('skip')">
+                    <i class="fas fa-step-forward"></i>
+                    <span>ข้ามเพลง (Skip)</span>
+                </button>
+                <button class="r-btn" onclick="sendCmd('replay')">
+                    <i class="fas fa-redo-alt"></i>
+                    <span>เริ่มเพลงใหม่</span>
+                </button>
+                <button class="r-btn" onclick="sendCmd('toggle_home')">
+                    <i class="fas fa-tv"></i>
+                    <span>สลับหน้าแรกทีวี</span>
+                </button>
+            </div>
+
+            <div class="sec-label" style="margin-top: 16px;"><i class="fas fa-volume-up"></i> ปรับระดับเสียง (Volume)</div>
+            <div class="vol-row">
+                <button class="vol-btn" onclick="sendCmd('mute_toggle')"><i class="fas fa-volume-mute"></i></button>
+                <button class="vol-btn" onclick="sendCmd('volume_down')"><i class="fas fa-minus"></i></button>
+                <input type="range" id="remote-vol-slider" min="0" max="100" value="100" onchange="sendCmd('set_volume', { volume: this.value })">
+                <button class="vol-btn" onclick="sendCmd('volume_up')"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
+
+        <!-- Vocal Scoring Remote Controls -->
+        <div class="card-section">
+            <div class="sec-label"><i class="fas fa-trophy"></i> คะแนนเสียงร้อง (Vocal Score)</div>
+            <div class="remote-pad-grid" style="grid-template-columns: 1fr;">
+                <button class="r-btn green" onclick="sendCmd('finish_song_score')">
+                    <i class="fas fa-award"></i>
+                    <span>ดูคะแนนเสียงร้องเพลงนี้</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Reactions to TV -->
+        <div class="card-section">
+            <div class="sec-label"><i class="fas fa-sparkles"></i> ส่งเอฟเฟกต์เชียร์ขึ้นจอทีวี!</div>
+            <div class="reaction-grid">
+                <button class="react-btn" onclick="sendReaction('👏', 'ปรบมือรัวๆ!')">
+                    <span class="emo">👏</span><span>ปรบมือ</span>
+                </button>
+                <button class="react-btn" onclick="sendReaction('❤️', 'รักเลยเพลงนี้!')">
+                    <span class="emo">❤️</span><span>ส่งหัวใจ</span>
+                </button>
+                <button class="react-btn" onclick="sendReaction('🔥', 'เสียงร้องไฟลุก!')">
+                    <span class="emo">🔥</span><span>ไฟลุก</span>
+                </button>
+                <button class="react-btn" onclick="sendReaction('🎉', 'สุดปัง!')">
+                    <span class="emo">🎉</span><span>จุดพลุ</span>
+                </button>
+                <button class="react-btn" onclick="sendReaction('🌹', 'มอบดอกไม้ให้นักร้อง')">
+                    <span class="emo">🌹</span><span>ดอกไม้</span>
+                </button>
+                <button class="react-btn" onclick="sendReaction('🤩', 'เอาไปเลย 100 คะแนน!')">
+                    <span class="emo">🤩</span><span>100 คะแนน!</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 2: SEARCH SONGS (ค้นหาเพลง) -->
+    <section id="tab-search" class="tab-panel">
+        <div class="search-bar-wrap">
+            <input type="text" id="m-search-input" placeholder="พิมพ์ชื่อเพลงหรือศิลปิน (ค้นหา YouTube)..." autocomplete="off">
+            <button onclick="doMobileSearch()"><i class="fas fa-search"></i></button>
+        </div>
+        <div id="m-search-results"></div>
+    </section>
+
+    <!-- TAB 3: BROWSE HOME CATALOG (เพลงฮิต, ชาร์ต, สถานี) -->
+    <section id="tab-browse" class="tab-panel">
+        <div class="sec-label"><i class="fas fa-broadcast-tower"></i> สถานีเพลงต่อเนื่อง</div>
+        <div id="m-stations-list" class="m-station-grid"></div>
+
+        <div class="sec-label"><i class="fas fa-trophy"></i> ชาร์ตเพลงฮิต Top 10 & เพลงแนะนำ</div>
+        <div id="m-catalog-list"></div>
+    </section>
+
+    <!-- TAB 4: QUEUE MANAGER (จัดการคิวเพลง) -->
+    <section id="tab-queue" class="tab-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="sec-label" style="margin-bottom:0;"><i class="fas fa-list-ol"></i> คิวเพลงที่รอเล่น (<span id="m-queue-total">0</span> เพลง)</div>
+            <button class="m-btn del" onclick="if(confirm('ต้องการรีเซ็ตล้างคิวเพลงทั้งหมดหรือไม่?')) sendCmd('clear_queue', {})" style="padding:6px 12px; font-size:12px; border-radius:8px;">
+                <i class="fas fa-trash-alt"></i> ล้างคิวทั้งหมด
+            </button>
+        </div>
+        <div id="m-queue-list"></div>
+    </section>
+
+    <!-- Bottom Tab Navigation -->
+    <nav class="bottom-nav">
+        <button class="b-nav-item active" onclick="switchTab('tab-remote', this)">
+            <i class="fas fa-gamepad"></i>
+            <span>รีโมท</span>
+        </button>
+        <button class="b-nav-item" onclick="switchTab('tab-search', this)">
+            <i class="fas fa-search"></i>
+            <span>ค้นหาเพลง</span>
+        </button>
+        <button class="b-nav-item" onclick="switchTab('tab-browse', this)">
+            <i class="fas fa-fire"></i>
+            <span>เพลงฮิต/สถานี</span>
+        </button>
+        <button class="b-nav-item" onclick="switchTab('tab-queue', this)">
+            <i class="fas fa-list-ol"></i>
+            <span>คิวเพลง</span>
+            <span id="m-nav-q-badge" class="q-badge">0</span>
+        </button>
+    </nav>
+
+    <script src="songs.js"></script>
+    <script>
+        const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
+        let remoteChannel = null;
+        try {
+            remoteChannel = new BroadcastChannel('karaoke_remote_channel');
+            remoteChannel.onmessage = (ev) => {
+                if (ev.data && ev.data.type === 'HOST_STATE') {
+                    applyHostState(ev.data.state);
+                }
+            };
+        } catch (e) { }
+
+        function showMobileToast(msg) {
+            const el = document.getElementById('m-toast');
+            el.innerText = msg;
+            el.style.display = 'block';
+            clearTimeout(window._mToastTimer);
+            window._mToastTimer = setTimeout(() => { el.style.display = 'none'; }, 2400);
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.b-nav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function getSenderName() {
+            return document.getElementById('remote-user-name').value.trim() || 'รีโมทมือถือ';
+        }
+
+        async function sendCmd(type, payload = {}) {
+            const cmdObj = {
+                id: 'cmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                type: type,
+                payload: payload,
+                sender: getSenderName(),
+                clientId: clientId
+            };
+
+            // 1. Instant local BroadcastChannel (for same-device testing)
+            if (remoteChannel) {
+                try { remoteChannel.postMessage({ type: 'REMOTE_COMMAND', command: cmdObj }); } catch (e) { }
+            }
+
+            // 2. Server-side PHP API (for cross-device Wi-Fi mobile remote)
+            try {
+                await fetch('remote_api.php?action=command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cmdObj)
+                });
+            } catch (e) { }
+
+            const toastMap = {
+                'play_pause': '⏯️ สั่งเล่น/หยุดเพลงแล้ว',
+                'skip': '⏭️ สั่งข้ามเพลงแล้ว',
+                'replay': '🔄 สั่งเริ่มเพลงใหม่แล้ว',
+                'volume_up': '🔊 เพิ่มเสียงแล้ว',
+                'volume_down': '🔉 ลดเสียงแล้ว',
+                'mute_toggle': '🔇 สลับเปิด/ปิดเสียงแล้ว',
+                'toggle_compete': '🎤 สลับโหมดวัดเสียงร้องแล้ว',
+                'finish_song_score': '🏁 สั่งจบเพลงและประมวลผลคะแนน!',
+                'toggle_home': '🏠 สลับหน้าแรกบนจอทีวีแล้ว'
+            };
+            if (toastMap[type]) showMobileToast(toastMap[type]);
+        }
+
+        function sendReaction(emoji, label) {
+            sendCmd('reaction', { emoji, label });
+            showMobileToast(`ส่ง ${emoji} ${label} ขึ้นจอทีวีแล้ว!`);
+        }
+
+        function remoteAddSong(encodedSong, playNow = false) {
+            const song = JSON.parse(decodeURIComponent(encodedSong));
+            if (playNow) {
+                sendCmd('play_now', { song });
+                showMobileToast(`▶️ สั่งเล่น "${song.title}" ทันที!`);
+            } else {
+                sendCmd('add_queue', { song });
+                showMobileToast(`➕ เพิ่ม "${song.title}" เข้าคิวแล้ว!`);
+            }
+        }
+
+        // Render Browse Catalog on Mobile
+        function initMobileCatalog() {
+            const stEl = document.getElementById('m-stations-list');
+            if (stEl && typeof MUSIC_STATIONS !== 'undefined') {
+                stEl.innerHTML = MUSIC_STATIONS.map(st => `
+                    <div class="m-station-card" style="background: ${st.gradient}" onclick="queueStationFromMobile('${st.id}')">
+                        <div><i class="fas ${st.icon}"></i> ${st.name}</div>
+                        <small>${st.subtitle}</small>
+                    </div>
+                `).join('');
+            }
+
+            const catEl = document.getElementById('m-catalog-list');
+            if (catEl && typeof SONGS_DB !== 'undefined') {
+                catEl.innerHTML = SONGS_DB.map(song => renderMobileSongRow(song)).join('');
+            }
+            // Initial search list
+            document.getElementById('m-search-results').innerHTML = SONGS_DB.slice(0, 8).map(s => renderMobileSongRow(s)).join('');
+        }
+
+        function queueStationFromMobile(stationId) {
+            if (typeof SONGS_DB === 'undefined') return;
+            const songs = SONGS_DB.filter(s => Array.isArray(s.stationIds) && s.stationIds.includes(stationId));
+            songs.forEach((s, i) => {
+                if (i === 0) sendCmd('play_now', { song: s });
+                else sendCmd('add_queue', { song: s });
+            });
+            showMobileToast(`📻 ส่งเพลงสถานีนี้เข้าจอหลักแล้ว!`);
+        }
+
+        function renderMobileSongRow(song) {
+            const safe = encodeURIComponent(JSON.stringify(song));
+            const thumb = `https://i.ytimg.com/vi/${song.ytId}/mqdefault.jpg`;
+            return `
+                <div class="m-song-item">
+                    <img src="${thumb}" alt="" onerror="this.src='cover-bg.jpg'">
+                    <div class="m-song-info">
+                        <div class="m-song-title">${song.title}</div>
+                        <div class="m-song-artist">${song.artist}</div>
+                    </div>
+                    <div class="m-song-btns">
+                        <button class="m-btn queue" onclick="remoteAddSong('${safe}', false)"><i class="fas fa-plus"></i> คิว</button>
+                        <button class="m-btn play" onclick="remoteAddSong('${safe}', true)"><i class="fas fa-play"></i> เล่น</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function doMobileSearch() {
+            const q = document.getElementById('m-search-input').value.trim();
+            const resBox = document.getElementById('m-search-results');
+            if (!q) {
+                resBox.innerHTML = SONGS_DB.slice(0, 8).map(s => renderMobileSongRow(s)).join('');
+                return;
+            }
+
+            const local = (typeof SONGS_DB !== 'undefined' ? SONGS_DB : []).filter(s =>
+                s.title.toLowerCase().includes(q.toLowerCase()) || s.artist.toLowerCase().includes(q.toLowerCase())
+            );
+            resBox.innerHTML = local.map(s => renderMobileSongRow(s)).join('') +
+                '<div style="text-align:center;padding:15px;color:#aaa;font-size:12px;"><i class="fas fa-spinner fa-spin"></i> กำลังค้นหาจาก YouTube...</div>';
+
+            try {
+                const res = await fetch('search.php?q=' + encodeURIComponent(q));
+                const yt = await res.json();
+                if (Array.isArray(yt) && yt.length > 0) {
+                    const combined = [...local, ...yt];
+                    resBox.innerHTML = combined.map(s => renderMobileSongRow(s)).join('');
+                } else {
+                    resBox.innerHTML = local.length ? local.map(s => renderMobileSongRow(s)).join('') : '<div style="text-align:center;padding:20px;color:#aaa;">ไม่พบเพลงที่ค้นหา</div>';
+                }
+            } catch (e) {
+                resBox.innerHTML = local.map(s => renderMobileSongRow(s)).join('');
+            }
+        }
+
+        document.getElementById('m-search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doMobileSearch();
+        });
+
+        // Poll Host State
+        function applyHostState(st) {
+            if (!st) return;
+            if (st.nowPlaying) {
+                document.getElementById('m-np-status').innerText = st.isPlaying ? '🟢 กำลังเล่นบนจอหลัก' : '⏸️ หยุดชั่วคราว';
+                document.getElementById('m-np-title').innerText = st.nowPlaying.title;
+                document.getElementById('m-np-artist').innerText = st.nowPlaying.artist;
+                document.getElementById('m-np-thumb').src = `https://i.ytimg.com/vi/${st.nowPlaying.ytId}/mqdefault.jpg`;
+            } else {
+                document.getElementById('m-np-status').innerText = 'พร้อมเล่นเพลง';
+                document.getElementById('m-np-title').innerText = 'ยังไม่มีเพลงที่กำลังเล่น';
+                document.getElementById('m-np-artist').innerText = 'เลือกเพลงส่งขึ้นจอได้เลย';
+            }
+
+            if (st.isCompeteMode) {
+                document.getElementById('m-vocal-eval').innerText = st.liveEvalText || 'กำลังวิเคราะห์เสียงร้อง...';
+                document.getElementById('m-vocal-score').innerText = (st.liveScore || 0) + ' คะแนน';
+            } else {
+                document.getElementById('m-vocal-eval').innerText = 'ปิดอยู่ (กดปุ่มสีทองด้านล่างเพื่อเปิดวัดเสียง)';
+                document.getElementById('m-vocal-score').innerText = 'OFF';
+            }
+
+            if (Array.isArray(st.queue)) {
+                document.getElementById('m-nav-q-badge').innerText = st.queue.length;
+                document.getElementById('m-queue-total').innerText = st.queue.length;
+                const qEl = document.getElementById('m-queue-list');
+                if (st.queue.length === 0) {
+                    qEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888;font-size:13px;">ยังไม่มีเพลงในคิว</div>';
+                } else {
+                    qEl.innerHTML = st.queue.map((song, idx) => `
+                        <div class="m-song-item">
+                            <div style="font-weight:800;color:var(--highlight);width:22px;text-align:center;">${idx + 1}</div>
+                            <div class="m-song-info">
+                                <div class="m-song-title">${song.title}</div>
+                                <div class="m-song-artist">${song.artist}</div>
+                            </div>
+                            <div class="m-song-btns">
+                                ${idx > 0 ? `<button class="m-btn queue" onclick="sendCmd('move_queue_top', { index: ${idx} })" title="ดันขึ้นคิวแรก"><i class="fas fa-arrow-up"></i></button>` : ''}
+                                <button class="m-btn del" onclick="sendCmd('remove_queue', { index: ${idx} })" title="ลบ"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        async function pollStateFromServer() {
+            try {
+                const res = await fetch('remote_api.php?action=state&clientId=' + encodeURIComponent(clientId));
+                const data = await res.json();
+                if (data && data.ok) {
+                    document.getElementById('conn-status-text').innerText = data.hostOnline ? 'เชื่อมต่อจอหลักแล้ว (Online)' : 'รอหน้าจอหลักเปิด...';
+                    applyHostState(data);
+                }
+            } catch (e) { }
+        }
+
+        initMobileCatalog();
+        pollStateFromServer();
+        setInterval(pollStateFromServer, 1200);
+    </script>
+</body>
+
+</html>
+

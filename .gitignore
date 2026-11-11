@@ -1,0 +1,9 @@
+# Temporary & profile data
+tv_profile/
+*.log
+remote_state.json
+
+# Local editor & tools
+.vscode/
+.idea/
+.gemini/
