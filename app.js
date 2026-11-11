@@ -2225,9 +2225,12 @@ const remoteCountBadge = document.getElementById('remote-count-badge');
 const reactionLayer = document.getElementById('reaction-layer');
 
 // Persistent Host Room ID for Direct PeerJS WebRTC Connection (< 20ms Remote Latency)
-let currentRoomId = localStorage.getItem('karaoke_room_id_v2');
+const urlParams = new URLSearchParams(window.location.search);
+let currentRoomId = urlParams.get('room') || localStorage.getItem('karaoke_room_id_v2');
 if (!currentRoomId) {
-    currentRoomId = 'ktv_' + Math.random().toString(36).substring(2, 8);
+    // Default deterministic room ID based on host so TV and mobile on same site connect automatically
+    const hostHash = window.location.hostname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'default';
+    currentRoomId = 'ktv_' + hostHash;
     localStorage.setItem('karaoke_room_id_v2', currentRoomId);
 }
 
@@ -2238,12 +2241,20 @@ let activePeerClients = [];
 function initHostPeerJs() {
     if (typeof Peer === 'undefined') return;
     try {
+        if (hostPeer) {
+            try { hostPeer.destroy(); } catch (e) {}
+        }
         hostPeer = new Peer(currentRoomId, { debug: 0 });
         hostPeer.on('open', (id) => {
             console.log('⚡ Direct WebRTC Remote Host Ready. Room:', id);
+            if (remoteCountBadge) {
+                remoteCountBadge.title = `รหัสห้องรีโมท: ${id}`;
+            }
         });
         hostPeer.on('connection', (conn) => {
-            activePeerClients.push(conn);
+            if (!activePeerClients.includes(conn)) {
+                activePeerClients.push(conn);
+            }
             if (remoteCountBadge) {
                 remoteCountBadge.innerText = `${activePeerClients.length} เครื่อง (P2P)`;
             }
@@ -2251,14 +2262,26 @@ function initHostPeerJs() {
 
             conn.on('data', (data) => {
                 if (data && data.type) {
+                    if (data.type === 'GET_STATE') {
+                        try {
+                            conn.send({
+                                type: 'HOST_STATE',
+                                state: getHostStatePayload()
+                            });
+                        } catch (e) {}
+                        return;
+                    }
                     executeRemoteCommand(data);
                 }
             });
             conn.on('close', () => {
                 activePeerClients = activePeerClients.filter(c => c !== conn);
                 if (remoteCountBadge) {
-                    remoteCountBadge.innerText = activePeerClients.length > 0 ? `${activePeerClients.length} เครื่อง` : 'QR';
+                    remoteCountBadge.innerText = activePeerClients.length > 0 ? `${activePeerClients.length} เครื่อง (P2P)` : 'QR';
                 }
+            });
+            conn.on('error', () => {
+                activePeerClients = activePeerClients.filter(c => c !== conn);
             });
 
             // Send current state immediately to the new client
@@ -2270,10 +2293,12 @@ function initHostPeerJs() {
             } catch (e) { }
         });
         hostPeer.on('error', (err) => {
+            console.warn('Host PeerJS warning:', err);
             if (err.type === 'unavailable-id') {
                 currentRoomId = 'ktv_' + Math.random().toString(36).substring(2, 8);
                 localStorage.setItem('karaoke_room_id_v2', currentRoomId);
-                setTimeout(initHostPeerJs, 1000);
+                if (typeof initRemoteQrCode === 'function') initRemoteQrCode();
+                setTimeout(initHostPeerJs, 600);
             }
         });
     } catch (e) { }
@@ -2382,7 +2407,7 @@ function closeRemoteModal() {
 let isSyncingHost = false;
 async function syncHostToServer() {
     const statePayload = {
-        roomId: 'KTV-888',
+        roomId: currentRoomId,
         isPlaying: isPlaying,
         volume: currentVolume,
         isMuted: isMuted,
@@ -2593,6 +2618,14 @@ function executeRemoteCommand(cmd) {
         case 'reaction':
             spawnFloatingReaction(p.emoji || '❤️', p.label || '', sender);
             break;
+    }
+
+    // Immediately broadcast updated host state to all connected P2P remotes (< 15ms)
+    if (activePeerClients.length > 0) {
+        const freshState = getHostStatePayload();
+        activePeerClients.forEach(c => {
+            try { c.send({ type: 'HOST_STATE', state: freshState }); } catch (e) { }
+        });
     }
 }
 
@@ -2815,11 +2848,13 @@ document.addEventListener('fullscreenchange', () => {
     }
 });
 
-// PWA Service Worker Registration
+// Clear any stale Service Workers so fresh scripts and APIs load instantly
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-    });
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+            registration.unregister().catch(() => {});
+        }
+    }).catch(() => {});
 }
 
 // Initialize App: เริ่มต้นเป็นหน้าแรก (Google TV Home Interface)

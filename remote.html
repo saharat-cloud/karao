@@ -45,6 +45,12 @@
             user-select: none !important;
         }
 
+        .dpad-btn:active, .dpad-center:active, .nav-pill-btn:active, .p-btn:active, .r-btn:active, .vol-btn:active, .react-btn:active, .m-btn:active {
+            transform: scale(0.92) !important;
+            filter: brightness(1.35) !important;
+            transition: transform 0.05s ease, filter 0.05s ease !important;
+        }
+
         body {
             background: radial-gradient(circle at top, rgba(255, 51, 102, 0.18), var(--bg-dark) 50%);
             background-color: var(--bg-dark);
@@ -768,12 +774,17 @@
             <div class="rh-logo"><i class="fas fa-mobile-alt"></i></div>
             <div>
                 <div class="rh-title">Karaoke Remote</div>
-                <div class="rh-status"><span class="status-dot"></span> <span id="conn-status-text">เชื่อมต่อพร้อมใช้งาน</span></div>
+                <div class="rh-status"><span class="status-dot" id="conn-status-dot"></span> <span id="conn-status-text">กำลังเชื่อมต่อทีวี...</span></div>
             </div>
         </div>
-        <div class="user-name-box">
-            <i class="fas fa-user"></i>
-            <input type="text" id="remote-user-name" placeholder="ชื่อของคุณ..." value="วัยรุ่นเทสดี" maxlength="12">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+            <div class="user-name-box">
+                <i class="fas fa-user"></i>
+                <input type="text" id="remote-user-name" placeholder="ชื่อของคุณ..." value="วัยรุ่นเทสดี" maxlength="12">
+            </div>
+            <div id="room-badge" onclick="promptChangeRoom()" title="แตะเพื่อเปลี่ยนรหัสห้อง" style="font-size:11px;color:#94a3b8;cursor:pointer;padding:2px 8px;background:rgba(255,255,255,0.06);border-radius:12px;border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:4px;">
+                <i class="fas fa-tv" style="color:#10b981;"></i> ห้อง: <span id="current-room-label" style="color:#e2e8f0;font-weight:600;">...</span> <i class="fas fa-pencil-alt" style="font-size:9px;color:#64748b;"></i>
+            </div>
         </div>
     </header>
 
@@ -959,71 +970,132 @@
 
     <!-- PeerJS for 0ms Instant Direct WebRTC Remote Connection -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-    <script src="songs.js?v=7"></script>
+    <script src="songs.js?v=9"></script>
     <script>
         const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
         const urlParams = new URLSearchParams(window.location.search);
-        const targetRoomId = urlParams.get('room');
+        
+        // Deterministic Room Matching:
+        // 1. URL ?room=... if present
+        // 2. Remembered room in localStorage
+        // 3. Deterministic room based on hostname so TV and phone automatically pair
+        const hostHash = window.location.hostname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'default';
+        let targetRoomId = urlParams.get('room') || localStorage.getItem('karaoke_last_room') || ('ktv_' + hostHash);
+        if (urlParams.get('room')) {
+            localStorage.setItem('karaoke_last_room', urlParams.get('room'));
+        }
 
-        // Prevent Double-Tap to Zoom on mobile devices
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
+        function updateRoomDisplay() {
+            const el = document.getElementById('current-room-label');
+            if (el) el.innerText = targetRoomId;
+        }
+        updateRoomDisplay();
+
+        function promptChangeRoom() {
+            const newRoom = prompt('ใส่รหัสห้องทีวี (Room ID) เช่น ktv_karaonavyvercelapp หรือสแกน QR Code จากหน้าจอ:', targetRoomId);
+            if (newRoom && newRoom.trim() && newRoom.trim() !== targetRoomId) {
+                targetRoomId = newRoom.trim();
+                localStorage.setItem('karaoke_last_room', targetRoomId);
+                updateRoomDisplay();
+                initRemotePeerJs();
+                showMobileToast('🔄 กำลังเชื่อมต่อห้องใหม่: ' + targetRoomId);
             }
-            lastTouchEnd = now;
-        }, { passive: false });
+        }
 
-        document.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-
-        // Synthesize Realistic Mechanical Remote Switch Click Sound
+        // Web Audio Context Unlock (Essential for iOS Safari & Android Chrome)
         let remoteAudioCtx = null;
+        function getAudioContext() {
+            try {
+                if (!remoteAudioCtx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        remoteAudioCtx = new AudioCtx();
+                    }
+                }
+                if (remoteAudioCtx && remoteAudioCtx.state === 'suspended') {
+                    remoteAudioCtx.resume().catch(() => {});
+                }
+            } catch (e) { }
+            return remoteAudioCtx;
+        }
+
+        // Unlock audio context on the very first user touch or interaction
+        function unlockAudio() {
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
+        }
+        ['touchstart', 'touchend', 'pointerdown', 'mousedown', 'click'].forEach(evt => {
+            window.addEventListener(evt, unlockAudio, { passive: true, capture: true });
+        });
+
+        // Synthesize Punchy Realistic Mechanical Remote Switch Click Sound
         function playRemoteClickSound() {
             try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                if (!remoteAudioCtx) {
-                    remoteAudioCtx = new AudioCtx();
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
                 }
-                if (remoteAudioCtx.state === 'suspended') {
-                    remoteAudioCtx.resume();
-                }
-                const now = remoteAudioCtx.currentTime;
-                const osc = remoteAudioCtx.createOscillator();
-                const gain = remoteAudioCtx.createGain();
+                const now = ctx.currentTime;
+                
+                // Crisp tactile transient click (high snap falling to punchy body)
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
 
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(1600, now);
-                osc.frequency.exponentialRampToValueAtTime(320, now + 0.016);
+                osc.frequency.setValueAtTime(2400, now);
+                osc.frequency.exponentialRampToValueAtTime(160, now + 0.024);
 
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.016);
+                gain.gain.setValueAtTime(0.75, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
 
                 osc.connect(gain);
-                gain.connect(remoteAudioCtx.destination);
+                gain.connect(ctx.destination);
 
                 osc.start(now);
-                osc.stop(now + 0.018);
+                osc.stop(now + 0.026);
             } catch (e) { }
         }
 
-        // Tactile Haptic Vibration
+        // Tactile Haptic Vibration (Android)
         function triggerHapticFeedback() {
-            if (navigator.vibrate) {
-                try { navigator.vibrate(22); } catch (e) { }
-            }
+            try {
+                if (navigator && typeof navigator.vibrate === 'function') {
+                    navigator.vibrate(30);
+                }
+            } catch (e) { }
         }
 
         // Direct WebRTC PeerJS Connection
         let remotePeer = null;
         let p2pConn = null;
+        let isP2pConnected = false;
+
+        function updateConnBadge(connected, text) {
+            const statusText = document.getElementById('conn-status-text');
+            const statusDot = document.getElementById('conn-status-dot');
+            if (statusText) {
+                if (connected) {
+                    statusText.innerHTML = '<span style="color:#10b981;font-weight:700;"><i class="fas fa-bolt"></i> ' + text + '</span>';
+                } else {
+                    statusText.innerText = text;
+                }
+            }
+            if (statusDot) {
+                statusDot.style.background = connected ? '#10b981' : '#f59e0b';
+                statusDot.style.boxShadow = connected ? '0 0 10px #10b981' : '0 0 10px #f59e0b';
+            }
+        }
 
         function initRemotePeerJs() {
             if (typeof Peer === 'undefined' || !targetRoomId) return;
             try {
+                if (remotePeer) {
+                    try { remotePeer.destroy(); } catch (e) {}
+                }
+                updateConnBadge(false, 'กำลังเชื่อมต่อทีวี...');
                 remotePeer = new Peer({ debug: 0 });
                 remotePeer.on('open', (id) => {
                     console.log('Remote PeerJS Ready. Connecting to TV Room:', targetRoomId);
@@ -1031,20 +1103,26 @@
                 });
                 remotePeer.on('error', (err) => {
                     console.warn('PeerJS Remote error:', err);
+                    updateConnBadge(false, 'กำลังเชื่อมต่อ...');
                 });
             } catch (e) { }
         }
 
         function connectToHostPeer(roomId) {
-            if (!remotePeer) return;
+            if (!remotePeer || !roomId) return;
             try {
+                updateConnBadge(false, 'กำลังเชื่อมต่อ P2P...');
                 p2pConn = remotePeer.connect(roomId, { reliable: true });
                 p2pConn.on('open', () => {
                     console.log('⚡ Direct WebRTC Connection Opened to TV!');
-                    const statusText = document.getElementById('conn-status-text');
-                    if (statusText) {
-                        statusText.innerHTML = '<span style="color:#10b981;font-weight:700;"><i class="fas fa-bolt"></i> เชื่อมต่อตรง (0ms WebRTC)</span>';
-                    }
+                    isP2pConnected = true;
+                    updateConnBadge(true, 'ต่อตรงทีวี (0ms P2P)');
+                    showMobileToast('🟢 เชื่อมต่อทีวีสำเร็จด้วย WebRTC (0ms)!');
+                    
+                    // Request full host state immediately
+                    try {
+                        p2pConn.send({ type: 'GET_STATE', clientId: clientId });
+                    } catch (e) {}
                 });
                 p2pConn.on('data', (data) => {
                     if (data && data.type === 'HOST_STATE') {
@@ -1052,10 +1130,20 @@
                     }
                 });
                 p2pConn.on('close', () => {
+                    isP2pConnected = false;
                     p2pConn = null;
-                    const statusText = document.getElementById('conn-status-text');
-                    if (statusText) statusText.innerText = 'เชื่อมต่อผ่านเซิร์ฟเวอร์';
-                    setTimeout(() => connectToHostPeer(roomId), 2500);
+                    updateConnBadge(false, 'ทีวีขาดการเชื่อมต่อ กำลังต่อใหม่...');
+                    setTimeout(() => {
+                        if (!isP2pConnected) connectToHostPeer(targetRoomId);
+                    }, 2500);
+                });
+                p2pConn.on('error', () => {
+                    isP2pConnected = false;
+                    p2pConn = null;
+                    updateConnBadge(false, 'กำลังต่อใหม่...');
+                    setTimeout(() => {
+                        if (!isP2pConnected) connectToHostPeer(targetRoomId);
+                    }, 2500);
                 });
             } catch (e) { }
         }
@@ -1309,12 +1397,16 @@
         }
 
         async function pollStateFromServer() {
+            // When WebRTC direct connection is active, state is streamed real-time (< 15ms)
+            if (isP2pConnected) return;
             try {
                 const res = await fetch(getApiEndpoint('remote_api.php?action=state&clientId=' + encodeURIComponent(clientId)));
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data && data.ok) {
-                    document.getElementById('conn-status-text').innerText = data.hostOnline ? 'เชื่อมต่อจอหลักแล้ว (Online)' : 'รอหน้าจอหลักเปิด...';
+                    if (!isP2pConnected) {
+                        updateConnBadge(data.hostOnline, data.hostOnline ? 'เชื่อมต่อผ่านเซิร์ฟเวอร์' : 'รอหน้าจอทีวีเปิด...');
+                    }
                     applyHostState(data);
                 }
             } catch (e) { }

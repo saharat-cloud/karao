@@ -1,6 +1,11 @@
 // Vercel Serverless Function: Remote Control Sync API
+import fs from 'fs';
+import path from 'path';
+
+const TMP_FILE = path.join('/tmp', 'karaoke_remote_state.json');
+
 let memoryState = {
-    roomId: 'KTV-888',
+    roomId: 'ktv_karaonavyvercelapp',
     hostLastSeen: Date.now(),
     isPlaying: false,
     volume: 100,
@@ -17,6 +22,24 @@ let memoryState = {
     clients: {}
 };
 
+function loadPersistedState() {
+    try {
+        if (fs.existsSync(TMP_FILE)) {
+            const raw = fs.readFileSync(TMP_FILE, 'utf8');
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+                memoryState = { ...memoryState, ...data };
+            }
+        }
+    } catch (e) { }
+}
+
+function savePersistedState() {
+    try {
+        fs.writeFileSync(TMP_FILE, JSON.stringify(memoryState));
+    } catch (e) { }
+}
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -26,16 +49,19 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
+    loadPersistedState();
+
     const action = req.query.action || 'state';
     const now = Date.now();
 
     if (action === 'info') {
         const proto = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers['x-forwarded-host'] || req.headers.host || 'karao-navy.vercel.app';
-        const remoteUrl = `${proto}://${host}/remote.html`;
+        const roomId = req.query.room || memoryState.roomId || 'ktv_karaonavyvercelapp';
+        const remoteUrl = `${proto}://${host}/remote.html?room=${encodeURIComponent(roomId)}`;
         return res.status(200).json({
             ok: true,
-            roomId: memoryState.roomId,
+            roomId: roomId,
             remoteUrl,
             hostOnline: (now - memoryState.hostLastSeen) < 15000
         });
@@ -47,6 +73,7 @@ export default async function handler(req, res) {
             try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
         }
         memoryState.hostLastSeen = now;
+        if (payload.roomId) memoryState.roomId = payload.roomId;
         if (typeof payload.isPlaying !== 'undefined') memoryState.isPlaying = Boolean(payload.isPlaying);
         if (typeof payload.volume !== 'undefined') memoryState.volume = Number(payload.volume);
         if (typeof payload.isMuted !== 'undefined') memoryState.isMuted = Boolean(payload.isMuted);
@@ -71,6 +98,8 @@ export default async function handler(req, res) {
         // Pop pending commands to execute on host
         const pendingCommands = [...(memoryState.commands || [])];
         memoryState.commands = [];
+
+        savePersistedState();
 
         return res.status(200).json({
             ok: true,
@@ -106,6 +135,8 @@ export default async function handler(req, res) {
             memoryState.commands = memoryState.commands.slice(-30);
         }
 
+        savePersistedState();
+
         return res.status(200).json({ ok: true, id: cmdId });
     }
 
@@ -114,6 +145,7 @@ export default async function handler(req, res) {
         if (clientId) {
             if (!memoryState.clients) memoryState.clients = {};
             memoryState.clients[clientId] = now;
+            savePersistedState();
         }
         return res.status(200).json({
             ok: true,
