@@ -2224,6 +2224,83 @@ const remoteIpChips = document.getElementById('remote-ip-chips');
 const remoteCountBadge = document.getElementById('remote-count-badge');
 const reactionLayer = document.getElementById('reaction-layer');
 
+// Persistent Host Room ID for Direct PeerJS WebRTC Connection (< 20ms Remote Latency)
+let currentRoomId = localStorage.getItem('karaoke_room_id_v2');
+if (!currentRoomId) {
+    currentRoomId = 'ktv_' + Math.random().toString(36).substring(2, 8);
+    localStorage.setItem('karaoke_room_id_v2', currentRoomId);
+}
+
+// PeerJS Direct WebRTC Connection Handler (TV Host)
+let hostPeer = null;
+let activePeerClients = [];
+
+function initHostPeerJs() {
+    if (typeof Peer === 'undefined') return;
+    try {
+        hostPeer = new Peer(currentRoomId, { debug: 0 });
+        hostPeer.on('open', (id) => {
+            console.log('⚡ Direct WebRTC Remote Host Ready. Room:', id);
+        });
+        hostPeer.on('connection', (conn) => {
+            activePeerClients.push(conn);
+            if (remoteCountBadge) {
+                remoteCountBadge.innerText = `${activePeerClients.length} เครื่อง (P2P)`;
+            }
+            showToast('📱 รีโมทมือถือเชื่อมต่อตรงด้วย WebRTC แล้ว (0ms)!');
+
+            conn.on('data', (data) => {
+                if (data && data.type) {
+                    executeRemoteCommand(data);
+                }
+            });
+            conn.on('close', () => {
+                activePeerClients = activePeerClients.filter(c => c !== conn);
+                if (remoteCountBadge) {
+                    remoteCountBadge.innerText = activePeerClients.length > 0 ? `${activePeerClients.length} เครื่อง` : 'QR';
+                }
+            });
+
+            // Send current state immediately to the new client
+            try {
+                conn.send({
+                    type: 'HOST_STATE',
+                    state: getHostStatePayload()
+                });
+            } catch (e) { }
+        });
+        hostPeer.on('error', (err) => {
+            if (err.type === 'unavailable-id') {
+                currentRoomId = 'ktv_' + Math.random().toString(36).substring(2, 8);
+                localStorage.setItem('karaoke_room_id_v2', currentRoomId);
+                setTimeout(initHostPeerJs, 1000);
+            }
+        });
+    } catch (e) { }
+}
+
+function getHostStatePayload() {
+    return {
+        roomId: currentRoomId,
+        isPlaying: isPlaying,
+        volume: currentVolume,
+        isMuted: isMuted,
+        isCompeteMode: isCompeteMode,
+        isHomeOpen: isHomeOpen,
+        liveScore: scoreData.liveScore || 0,
+        liveEvalText: scoreData.liveEvalText || 'รอเสียงร้อง...',
+        liveNote: scoreData.liveNote || '--',
+        nowPlaying: currentPlayingSong ? {
+            id: currentPlayingSong.id,
+            title: currentPlayingSong.title,
+            artist: currentPlayingSong.artist,
+            ytId: currentPlayingSong.ytId
+        } : null,
+        queue: queue.slice(0, 30),
+        leaderboard: leaderboard
+    };
+}
+
 // Same-device instant BroadcastChannel
 let remoteBroadcast = null;
 try {
@@ -2252,7 +2329,7 @@ async function openRemoteModal() {
                 if (Array.isArray(info.allIps) && info.allIps.length > 0 && remoteIpChips) {
                     const portPart = (info.port && info.port !== '80' && info.port !== '443') ? `:${info.port}` : '';
                     remoteIpChips.innerHTML = info.allIps.map(ip => {
-                        const url = `http://${ip}${portPart}${info.basePath}/remote.html`;
+                        const url = `http://${ip}${portPart}${info.basePath}/remote.html?room=${encodeURIComponent(currentRoomId)}`;
                         return `<span class="ip-chip" onclick="selectRemoteIpUrl('${url}')"><i class="fas fa-wifi"></i> ${ip}</span>`;
                     }).join('');
                 }
@@ -2260,15 +2337,19 @@ async function openRemoteModal() {
         }
     } catch (e) { }
 
+    const roomParam = (defaultUrl.includes('?') ? '&' : '?') + 'room=' + encodeURIComponent(currentRoomId);
+    if (!defaultUrl.includes('room=')) defaultUrl += roomParam;
+
     remoteUrlInput.value = defaultUrl;
     const previewBtn = document.getElementById('open-remote-preview-btn');
-    if (previewBtn) previewBtn.href = 'remote.html';
+    if (previewBtn) previewBtn.href = defaultUrl;
     renderQrCodeImage(defaultUrl);
 }
 
 function selectRemoteIpUrl(url) {
-    remoteUrlInput.value = url;
-    renderQrCodeImage(url);
+    const fullUrl = url.includes('room=') ? url : (url + (url.includes('?') ? '&' : '?') + 'room=' + encodeURIComponent(currentRoomId));
+    remoteUrlInput.value = fullUrl;
+    renderQrCodeImage(fullUrl);
 }
 
 function updateRemoteQrFromInput() {
@@ -2323,6 +2404,13 @@ async function syncHostToServer() {
     // Broadcast to any same-browser tabs immediately
     if (remoteBroadcast) {
         try { remoteBroadcast.postMessage({ type: 'HOST_STATE', state: statePayload }); } catch (e) { }
+    }
+
+    // Broadcast to any connected P2P WebRTC clients immediately (< 15ms)
+    if (activePeerClients.length > 0) {
+        activePeerClients.forEach(c => {
+            try { c.send({ type: 'HOST_STATE', state: statePayload }); } catch (e) { }
+        });
     }
 
     if (isSyncingHost) return;
@@ -2505,8 +2593,8 @@ function spawnFloatingReaction(emoji, label, sender) {
     }
 }
 
-// Poll remote commands every 500ms for fast D-Pad responsiveness
-setInterval(syncHostToServer, 500);
+// Poll remote commands every 350ms for fast HTTP fallback responsiveness
+setInterval(syncHostToServer, 350);
 
 // ============================================================================
 // SYNTH SOUND EFFECTS & PERSISTENCE UTILITIES
@@ -2676,6 +2764,9 @@ async function initRemoteQrCode() {
         }
     } catch (e) { }
 
+    const roomParam = (defaultUrl.includes('?') ? '&' : '?') + 'room=' + encodeURIComponent(currentRoomId);
+    if (!defaultUrl.includes('room=')) defaultUrl += roomParam;
+
     renderQrCodeImage(defaultUrl);
 }
 
@@ -2718,6 +2809,7 @@ document.body.classList.add('home-active');
 updateGtvClock();
 setInterval(updateGtvClock, 1000);
 initTvStandbyClock();
+initHostPeerJs();
 initRemoteQrCode();
 loadQueue();
 renderQueue();

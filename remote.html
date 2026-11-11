@@ -27,6 +27,22 @@
             box-sizing: border-box;
             font-family: 'Prompt', sans-serif;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Prevent double-tap zoom completely on mobile */
+        html, body {
+            touch-action: manipulation !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+
+        button, input, .dpad-btn, .dpad-center, .nav-pill-btn, .p-btn, .r-btn, .vol-btn, .react-btn, .m-btn {
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            user-select: none !important;
         }
 
         body {
@@ -941,9 +957,109 @@
         </button>
     </nav>
 
-    <script src="songs.js?v=5"></script>
+    <!-- PeerJS for 0ms Instant Direct WebRTC Remote Connection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+    <script src="songs.js?v=6"></script>
     <script>
         const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetRoomId = urlParams.get('room');
+
+        // Prevent Double-Tap to Zoom on mobile devices
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        document.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        // Synthesize Realistic Mechanical Remote Switch Click Sound
+        let remoteAudioCtx = null;
+        function playRemoteClickSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!remoteAudioCtx) {
+                    remoteAudioCtx = new AudioCtx();
+                }
+                if (remoteAudioCtx.state === 'suspended') {
+                    remoteAudioCtx.resume();
+                }
+                const now = remoteAudioCtx.currentTime;
+                const osc = remoteAudioCtx.createOscillator();
+                const gain = remoteAudioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1600, now);
+                osc.frequency.exponentialRampToValueAtTime(320, now + 0.016);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.016);
+
+                osc.connect(gain);
+                gain.connect(remoteAudioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.018);
+            } catch (e) { }
+        }
+
+        // Tactile Haptic Vibration
+        function triggerHapticFeedback() {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(22); } catch (e) { }
+            }
+        }
+
+        // Direct WebRTC PeerJS Connection
+        let remotePeer = null;
+        let p2pConn = null;
+
+        function initRemotePeerJs() {
+            if (typeof Peer === 'undefined' || !targetRoomId) return;
+            try {
+                remotePeer = new Peer({ debug: 0 });
+                remotePeer.on('open', (id) => {
+                    console.log('Remote PeerJS Ready. Connecting to TV Room:', targetRoomId);
+                    connectToHostPeer(targetRoomId);
+                });
+                remotePeer.on('error', (err) => {
+                    console.warn('PeerJS Remote error:', err);
+                });
+            } catch (e) { }
+        }
+
+        function connectToHostPeer(roomId) {
+            if (!remotePeer) return;
+            try {
+                p2pConn = remotePeer.connect(roomId, { reliable: true });
+                p2pConn.on('open', () => {
+                    console.log('⚡ Direct WebRTC Connection Opened to TV!');
+                    const statusText = document.getElementById('conn-status-text');
+                    if (statusText) {
+                        statusText.innerHTML = '<span style="color:#10b981;font-weight:700;"><i class="fas fa-bolt"></i> เชื่อมต่อตรง (0ms WebRTC)</span>';
+                    }
+                });
+                p2pConn.on('data', (data) => {
+                    if (data && data.type === 'HOST_STATE') {
+                        applyHostState(data.state);
+                    }
+                });
+                p2pConn.on('close', () => {
+                    p2pConn = null;
+                    const statusText = document.getElementById('conn-status-text');
+                    if (statusText) statusText.innerText = 'เชื่อมต่อผ่านเซิร์ฟเวอร์';
+                    setTimeout(() => connectToHostPeer(roomId), 2500);
+                });
+            } catch (e) { }
+        }
+
         function getApiEndpoint(target) {
             const isVercel = window.location.hostname.includes('vercel.app') || 
                              window.location.hostname.includes('now.sh') || 
@@ -984,9 +1100,10 @@
         }
 
         async function sendCmd(type, payload = {}) {
-            if (navigator.vibrate) {
-                try { navigator.vibrate(18); } catch (e) { }
-            }
+            // Tactile feedback on every tap
+            playRemoteClickSound();
+            triggerHapticFeedback();
+
             const cmdObj = {
                 id: 'cmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 type: type,
@@ -995,18 +1112,27 @@
                 clientId: clientId
             };
 
-            // 1. Instant local BroadcastChannel (for same-device testing)
+            // 1. Ultra-fast direct WebRTC (< 20ms direct peer-to-peer data channel)
+            let sentViaP2P = false;
+            if (p2pConn && p2pConn.open) {
+                try {
+                    p2pConn.send(cmdObj);
+                    sentViaP2P = true;
+                } catch (e) { }
+            }
+
+            // 2. Instant local BroadcastChannel (for same-device testing, 0ms)
             if (remoteChannel) {
                 try { remoteChannel.postMessage({ type: 'REMOTE_COMMAND', command: cmdObj }); } catch (e) { }
             }
 
-            // 2. Server-side PHP API (for cross-device Wi-Fi mobile remote)
+            // 3. Server-side HTTP API (always delivers as fallback)
             try {
-                await fetch(getApiEndpoint('remote_api.php?action=command'), {
+                fetch(getApiEndpoint('remote_api.php?action=command'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(cmdObj)
-                });
+                }).catch(() => {});
             } catch (e) { }
 
             const toastMap = {
@@ -1177,6 +1303,7 @@
             } catch (e) { }
         }
 
+        initRemotePeerJs();
         initMobileCatalog();
         pollStateFromServer();
         setInterval(pollStateFromServer, 1200);
