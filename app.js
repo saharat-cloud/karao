@@ -1626,6 +1626,13 @@ function togglePausePlayWithFade() {
     }
 }
 
+function updateVolumeSliderUi(slider, val, muted) {
+    if (!slider) return;
+    slider.value = muted ? 0 : val;
+    const pct = muted ? 0 : val;
+    slider.style.background = `linear-gradient(to right, #ff3366 0%, #ff3366 ${pct}%, rgba(255,255,255,0.2) ${pct}%, rgba(255,255,255,0.2) 100%)`;
+}
+
 function setPlayerVolume(val) {
     currentVolume = Math.max(0, Math.min(100, parseInt(val) || 0));
     isMuted = (currentVolume === 0);
@@ -1633,7 +1640,7 @@ function setPlayerVolume(val) {
         player.setVolume(currentVolume);
     }
     const slider = document.getElementById('np-volume-slider');
-    if (slider) slider.value = currentVolume;
+    if (slider) updateVolumeSliderUi(slider, currentVolume, isMuted);
     const volIcon = document.getElementById('np-vol-icon');
     if (volIcon) {
         volIcon.className = isMuted ? 'fas fa-volume-mute' : (currentVolume < 50 ? 'fas fa-volume-down' : 'fas fa-volume-up');
@@ -1646,6 +1653,8 @@ function toggleMuteVolume() {
     if (player && typeof player.setVolume === 'function') {
         player.setVolume(isMuted ? 0 : currentVolume);
     }
+    const slider = document.getElementById('np-volume-slider');
+    if (slider) updateVolumeSliderUi(slider, currentVolume, isMuted);
     const volIcon = document.getElementById('np-vol-icon');
     if (volIcon) {
         volIcon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
@@ -1656,6 +1665,7 @@ function toggleMuteVolume() {
 
 const npVolumeSlider = document.getElementById('np-volume-slider');
 if (npVolumeSlider) {
+    updateVolumeSliderUi(npVolumeSlider, currentVolume, isMuted);
     npVolumeSlider.addEventListener('input', (e) => setPlayerVolume(e.target.value));
 }
 

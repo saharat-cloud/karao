@@ -848,10 +848,10 @@ html {
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
 }
 
-/* Explicit focus reset for inputs so typing never triggers white border */
-input,
-input:focus,
-input:focus-visible,
+/* Explicit focus reset for text inputs so typing never triggers white border */
+input:not([type="range"]),
+input:not([type="range"]):focus,
+input:not([type="range"]):focus-visible,
 #search-input,
 #search-input:focus,
 #search-input:focus-visible,
@@ -2561,13 +2561,13 @@ body.home-active #now-playing {
 .np-shortcuts-bar {
     display: flex;
     align-items: center;
-    gap: clamp(4px, 0.6vw, 10px);
+    gap: clamp(6px, 0.75vw, 14px);
     margin-left: auto;
     margin-right: 14px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 30px;
-    padding: 5px clamp(6px, 0.7vw, 14px);
+    border-radius: 16px;
+    padding: 6px clamp(8px, 1vw, 16px);
     flex-wrap: nowrap;
     flex-shrink: 1;
     min-width: 0;
@@ -2582,43 +2582,61 @@ body.home-active #now-playing {
 
 .np-hint-item {
     display: inline-flex;
+    flex-direction: column; /* สัญลักษณ์สีเขียวไว้ด้านบน คำอธิบายไว้ด้านล่าง */
     align-items: center;
-    gap: clamp(3px, 0.3vw, 5px);
-    font-size: clamp(9px, 0.72vw, 11px);
+    justify-content: center;
+    gap: 3px;
+    padding: 2px 4px;
+    text-align: center;
     color: var(--text-muted);
     white-space: nowrap;
-    transition: color 0.2s;
+    transition: all 0.2s;
     flex-shrink: 0;
-}
-
-.np-hint-item:hover {
-    color: #fff;
+    cursor: default;
 }
 
 .np-hint-item .q-key {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--highlight);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #10b981;
     font-weight: 700;
-    font-size: clamp(8px, 0.62vw, 10px);
-    padding: 2px clamp(3px, 0.35vw, 6px);
-    border-radius: 4px;
+    font-size: clamp(8.5px, 0.65vw, 10.5px);
+    padding: 2px clamp(5px, 0.4vw, 8px);
+    border-radius: 5px;
     white-space: nowrap;
     min-width: unset;
     text-align: center;
     transition: all 0.2s;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+.np-hint-item span:last-child {
+    font-size: clamp(8px, 0.6vw, 10px);
+    color: #94a3b8;
+    white-space: nowrap;
+    line-height: 1.1;
+    transition: color 0.2s;
 }
 
 .np-hint-item:hover .q-key {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
-@media (max-width: 1440px) {
+.np-hint-item:hover span:last-child {
+    color: #ffffff;
+}
+
+@media (max-width: 1400px) {
     .np-shortcuts-bar {
-        gap: 5px;
-        padding: 4px 8px;
+        gap: 6px;
+        padding: 5px 8px;
     }
     .np-hint-item:nth-child(1), /* [คลิกเพลง] แทรกเพลง */
     .np-hint-item:nth-child(7)  /* [Esc] ปิดคิว */ {
@@ -2626,17 +2644,17 @@ body.home-active #now-playing {
     }
 }
 
-@media (max-width: 1140px) {
+@media (max-width: 1100px) {
     .np-shortcuts-bar {
-        gap: 4px;
-        padding: 3px 6px;
+        gap: 5px;
+        padding: 4px 6px;
     }
     .np-hint-item:nth-child(4) /* [รีเซ็ตคิว] */ {
         display: none;
     }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 860px) {
     .np-shortcuts-bar {
         display: none;
     }
@@ -2769,16 +2787,82 @@ body.home-active #now-playing {
     border-color: var(--primary);
 }
 
+/* Volume Mini Control & Slider */
 .volume-mini-control {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-left: 6px;
+    gap: 8px;
+    margin-left: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 10px 3px 5px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 #np-volume-slider {
-    width: 80px;
-    accent-color: var(--primary);
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 85px;
+    height: 6px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 999px !important;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    vertical-align: middle;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: background 0.15s ease;
+}
+
+#np-volume-slider:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Chrome / Safari / Edge Track & Thumb */
+#np-volume-slider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+    border: none;
+}
+
+#np-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 15px;
+    height: 15px;
+    margin-top: -4.5px;
+    border-radius: 50%;
+    background: var(--primary, #ff3366) !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 51, 102, 0.6) !important;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#np-volume-slider:hover::-webkit-slider-thumb,
+#np-volume-slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 14px rgba(255, 51, 102, 0.9) !important;
+}
+
+/* Firefox Track & Thumb */
+#np-volume-slider::-moz-range-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    border: none;
+}
+
+#np-volume-slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--primary, #ff3366);
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     cursor: pointer;
 }
 
