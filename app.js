@@ -2234,11 +2234,12 @@ async function openRemoteModal() {
             if (info && info.ok && info.remoteUrl) {
                 defaultUrl = info.remoteUrl;
                 if (Array.isArray(info.allIps) && info.allIps.length > 0 && remoteIpChips) {
-                const portPart = (info.port && info.port !== '80' && info.port !== '443') ? `:${info.port}` : '';
-                remoteIpChips.innerHTML = info.allIps.map(ip => {
-                    const url = `http://${ip}${portPart}${info.basePath}/remote.html`;
-                    return `<span class="ip-chip" onclick="selectRemoteIpUrl('${url}')"><i class="fas fa-wifi"></i> ${ip}</span>`;
-                }).join('');
+                    const portPart = (info.port && info.port !== '80' && info.port !== '443') ? `:${info.port}` : '';
+                    remoteIpChips.innerHTML = info.allIps.map(ip => {
+                        const url = `http://${ip}${portPart}${info.basePath}/remote.html`;
+                        return `<span class="ip-chip" onclick="selectRemoteIpUrl('${url}')"><i class="fas fa-wifi"></i> ${ip}</span>`;
+                    }).join('');
+                }
             }
         }
     } catch (e) { }
