@@ -2,6 +2,7 @@
 tv_profile/
 *.log
 remote_state.json
+scratch/
 
 # Local editor & tools
 .vscode/

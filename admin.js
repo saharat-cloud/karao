@@ -206,7 +206,8 @@ async function autoSearch() {
     resultsEl.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center"><span class="spinner"></span> &nbsp;กำลังค้นหาข้อมูลจาก YouTube...</div>';
 
     try {
-        const res = await fetch('search_proxy.php?q=' + encodeURIComponent(q));
+        const apiUrl = (window.location.hostname.includes('vercel.app') || (window.location.protocol === 'https:' && !window.location.hostname.includes('localhost'))) ? ('/api/search?q=' + encodeURIComponent(q)) : ('search_proxy.php?q=' + encodeURIComponent(q));
+        const res = await fetch(apiUrl);
         const data = await res.json();
 
         if (data.error) {

@@ -674,9 +674,19 @@
         </button>
     </nav>
 
-    <script src="songs.js"></script>
+    <script src="songs.js?v=2"></script>
     <script>
         const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
+        function getApiEndpoint(target) {
+            const isVercel = window.location.hostname.includes('vercel.app') || 
+                             window.location.hostname.includes('now.sh') || 
+                             (window.location.protocol === 'https:' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1'));
+            if (isVercel) {
+                if (target.includes('search.php')) return target.replace('search.php', '/api/search');
+                if (target.includes('remote_api.php')) return target.replace('remote_api.php', '/api/remote_api');
+            }
+            return target;
+        }
         let remoteChannel = null;
         try {
             remoteChannel = new BroadcastChannel('karaoke_remote_channel');
@@ -722,7 +732,7 @@
 
             // 2. Server-side PHP API (for cross-device Wi-Fi mobile remote)
             try {
-                await fetch('remote_api.php?action=command', {
+                await fetch(getApiEndpoint('remote_api.php?action=command'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(cmdObj)
@@ -822,7 +832,7 @@
                 '<div style="text-align:center;padding:15px;color:#aaa;font-size:12px;"><i class="fas fa-spinner fa-spin"></i> กำลังค้นหาจาก YouTube...</div>';
 
             try {
-                const res = await fetch('search.php?q=' + encodeURIComponent(q));
+                const res = await fetch(getApiEndpoint('search.php?q=' + encodeURIComponent(q)));
                 const yt = await res.json();
                 if (Array.isArray(yt) && yt.length > 0) {
                     const combined = [...local, ...yt];
@@ -887,7 +897,8 @@
 
         async function pollStateFromServer() {
             try {
-                const res = await fetch('remote_api.php?action=state&clientId=' + encodeURIComponent(clientId));
+                const res = await fetch(getApiEndpoint('remote_api.php?action=state&clientId=' + encodeURIComponent(clientId)));
+                if (!res.ok) return;
                 const data = await res.json();
                 if (data && data.ok) {
                     document.getElementById('conn-status-text').innerText = data.hostOnline ? 'เชื่อมต่อจอหลักแล้ว (Online)' : 'รอหน้าจอหลักเปิด...';

@@ -23,6 +23,18 @@ let isQueueBrowseMode = false;
 let queueHideTimeout;
 let fadeInterval = null;
 
+// Dynamic API Endpoint Resolver (Auto-switches between Vercel Serverless Functions and local PHP)
+function getApiEndpoint(target) {
+    const isVercel = window.location.hostname.includes('vercel.app') || 
+                     window.location.hostname.includes('now.sh') || 
+                     (window.location.protocol === 'https:' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1'));
+    if (isVercel) {
+        if (target.includes('search.php')) return target.replace('search.php', '/api/search');
+        if (target.includes('remote_api.php')) return target.replace('remote_api.php', '/api/remote_api');
+    }
+    return target;
+}
+
 // Resolved YouTube Karaoke IDs Cache (so preset songs always play real karaoke videos)
 let resolvedYtCache = {};
 try {
@@ -185,7 +197,7 @@ async function resolvePlayableKaraokeId(song, altIndex = 0) {
 
     const query = song.searchQuery || `${song.title.replace(/\[.*?\]/g, '').trim()} ${song.artist}`;
     try {
-        const res = await fetch('search.php?q=' + encodeURIComponent(query));
+        const res = await fetch(getApiEndpoint('search.php?q=' + encodeURIComponent(query)));
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
             const pick = data[Math.min(altIndex, data.length - 1)];
@@ -532,7 +544,7 @@ async function startMusicStation(stationId) {
     // Also fetch extra fresh songs for this station from YouTube in background
     if (st.searchKeyword) {
         try {
-            const res = await fetch('search.php?q=' + encodeURIComponent(st.searchKeyword));
+            const res = await fetch(getApiEndpoint('search.php?q=' + encodeURIComponent(st.searchKeyword)));
             const ytSongs = await res.json();
             if (Array.isArray(ytSongs) && ytSongs.length > 0) {
                 let added = 0;
@@ -1048,7 +1060,7 @@ document.addEventListener('keydown', (e) => {
                     closeSearch();
                     closeHomeScreen();
                     showToast(`🔍 กำลังค้นหาเพลง "${rawQuery}"...`);
-                    fetch('search.php?q=' + encodeURIComponent(rawQuery))
+                    fetch(getApiEndpoint('search.php?q=' + encodeURIComponent(rawQuery)))
                         .then(res => res.json())
                         .then(ytResults => {
                             if (Array.isArray(ytResults) && ytResults.length > 0) {
@@ -1153,47 +1165,57 @@ document.addEventListener('keydown', (e) => {
 });
 
 let searchDebounce;
+
+function showInitialSearchSuggestions() {
+    const hits = getActiveSongDB().filter(s => s.isRecommended || s.isHit).slice(0, 8);
+    renderSearchResults(hits, '🔥 เพลงแนะนำยอดนิยม (กดเลือกหรือพิมพ์ค้นหาได้ทันที)');
+}
+
 searchInput.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase().trim();
     if (q === '') {
-        renderSearchResults([]);
+        showInitialSearchSuggestions();
         return;
     }
 
     const isValidKaraoke = (title, artist) => {
-        const t = title.toLowerCase();
-        const a = artist ? artist.toLowerCase() : '';
+        const t = (title || '').toLowerCase();
+        const a = (artist || '').toLowerCase();
         if (t.includes('official mv') || t.includes('official music video') || t.includes('official audio')) {
             return false;
         }
         return t.includes('karaoke') || t.includes('คาราโอเกะ') ||
                t.includes('instrumental') || t.includes('backing track') ||
-               t.includes('ตัดเสียงร้อง') || a.includes('karaoke') || a.includes('คาราโอเกะ');
+               t.includes('ตัดเสียงร้อง') || a.includes('karaoke') || a.includes('คาราโอเกะ') ||
+               t.includes('ดนตรีสด') || t.includes('cover');
     };
 
     const localResults = getActiveSongDB().filter(song => {
-        const matchQ = song.title.toLowerCase().includes(q) || song.artist.toLowerCase().includes(q);
+        const matchQ = (song.title || '').toLowerCase().includes(q) || 
+                       (song.artist || '').toLowerCase().includes(q) ||
+                       (song.searchQuery || '').toLowerCase().includes(q);
         return matchQ && !(song.title.toLowerCase().includes('official mv'));
-    }).slice(0, 6);
+    }).slice(0, 8);
 
-    renderSearchResults(localResults);
+    if (localResults.length > 0) {
+        renderSearchResults(localResults, `✨ ผลการค้นหาเพลงในเครื่องสำหรับ "${e.target.value.trim()}"`);
+    }
 
-    if (q.length >= 2) {
-        if (searchResultsContainer.innerHTML.includes('result-item') && !searchResultsContainer.innerHTML.includes('ไม่พบเพลง')) {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.id = 'yt-search-loading';
-            loadingDiv.style = "text-align:center; padding:15px; color:#aaa; font-size:13px; font-style:italic;";
-            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังค้นหาเพลงคาราโอเกะใน YouTube...';
-            searchResultsContainer.appendChild(loadingDiv);
-        } else {
-            searchResultsContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#aaa;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>กำลังควานหาเพลงคาราโอเกะจาก YouTube...</div>';
-        }
+    if (q.length >= 1) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'yt-search-loading';
+        loadingDiv.style = "text-align:center; padding:12px; color:#aaa; font-size:13px; font-style:italic;";
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังค้นหาเพลงคาราโอเกะออนไลน์...';
+        searchResultsContainer.appendChild(loadingDiv);
 
         clearTimeout(searchDebounce);
         searchDebounce = setTimeout(() => {
-            fetch('search.php?q=' + encodeURIComponent(q))
+            fetch(getApiEndpoint('search.php?q=' + encodeURIComponent(q)))
                 .then(res => res.json())
                 .then(ytResults => {
+                    const loader = document.getElementById('yt-search-loading');
+                    if (loader) loader.remove();
+
                     if (Array.isArray(ytResults) && ytResults.length > 0) {
                         const filteredYt = ytResults.filter(song => isValidKaraoke(song.title, song.artist));
                         const listToUse = filteredYt.length > 0 ? filteredYt : ytResults;
@@ -1206,21 +1228,30 @@ searchInput.addEventListener('input', (e) => {
                                 unique.push(item);
                             }
                         }
-                        renderSearchResults(unique);
+                        renderSearchResults(unique, `🔍 ผลการค้นหาสำหรับ "${e.target.value.trim()}"`);
+                    } else if (localResults.length > 0) {
+                        renderSearchResults(localResults, `✨ ผลการค้นหาสำหรับ "${e.target.value.trim()}"`);
                     } else {
-                        renderSearchResults(localResults);
+                        renderSearchResults([], null, e.target.value.trim());
                     }
                 })
                 .catch(() => {
-                    renderSearchResults(localResults);
+                    const loader = document.getElementById('yt-search-loading');
+                    if (loader) loader.remove();
+                    if (localResults.length > 0) {
+                        renderSearchResults(localResults, `✨ ผลการค้นหาสำหรับ "${e.target.value.trim()}"`);
+                    } else {
+                        renderSearchResults([], null, e.target.value.trim());
+                    }
                 });
-        }, 500);
+        }, 400);
     }
 });
 
 function openSearch() {
     isSearchActive = true;
     searchContainer.classList.remove('hidden');
+    showInitialSearchSuggestions();
 }
 
 function closeSearch() {
@@ -1231,35 +1262,77 @@ function closeSearch() {
     searchInput.blur();
 }
 
-function renderSearchResults(results) {
-    searchResults = results;
+function renderSearchResults(results, headerTitle = null, emptyQuery = null) {
+    searchResults = results || [];
     searchResultsContainer.innerHTML = '';
 
-    if (results.length === 0) {
-        searchResultsContainer.innerHTML = '<div class="result-item"><div class="result-title">พิมพ์ชื่อเพลงหรือศิลปินเพื่อค้นหา...</div></div>';
-        selectedSearchIndex = -1;
+    if (searchResults.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style = "padding:16px 14px; text-align:center;";
+        if (emptyQuery) {
+            emptyDiv.innerHTML = `
+                <div style="color:#f59e0b; font-size:14px; font-weight:600; margin-bottom:8px;">
+                    <i class="fas fa-search"></i> ไม่พบเพลงคาราโอเกะสำหรับ "${escHtml(emptyQuery)}"
+                </div>
+                <div style="color:#aaa; font-size:12px; margin-bottom:12px;">
+                    แนะนำลองค้นหาด้วยชื่อศิลปิน หรือเลือกร้องเพลงแนะนำยอดนิยมด้านล่างนี้ได้เลย:
+                </div>
+            `;
+        } else {
+            emptyDiv.innerHTML = `
+                <div style="color:#aaa; font-size:13px; margin-bottom:8px;">
+                    <i class="fas fa-keyboard"></i> พิมพ์ชื่อเพลงหรือศิลปินเพื่อค้นหา
+                </div>
+                <div style="color:#888; font-size:12px; margin-bottom:10px;">
+                    หรือเลือกเพลงแนะนำยอดนิยมด้านล่างนี้:
+                </div>
+            `;
+        }
+        searchResultsContainer.appendChild(emptyDiv);
+
+        // Fallback to top hits so list is never empty
+        const fallbackHits = getActiveSongDB().filter(s => s.isRecommended || s.isHit).slice(0, 6);
+        searchResults = fallbackHits;
+        selectedSearchIndex = 0;
+        fallbackHits.forEach((song, idx) => {
+            const div = createSearchResultElement(song, idx === 0);
+            searchResultsContainer.appendChild(div);
+        });
         return;
     }
 
+    if (headerTitle) {
+        const headerDiv = document.createElement('div');
+        headerDiv.style = "padding:8px 14px; color:#f8fafc; font-size:12px; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:6px; opacity:0.85;";
+        headerDiv.innerHTML = headerTitle;
+        searchResultsContainer.appendChild(headerDiv);
+    }
+
     selectedSearchIndex = 0;
-    results.forEach((song, idx) => {
-        const div = document.createElement('div');
-        div.className = `result-item ${idx === 0 ? 'selected' : ''}`;
-        const thumbUrl = `https://i.ytimg.com/vi/${song.ytId}/mqdefault.jpg`;
-        div.innerHTML = `
-            <img src="${thumbUrl}" class="result-thumbnail" alt="thumbnail" loading="lazy" onerror="this.src='cover-bg.jpg'">
-            <div class="result-info">
-                <div class="result-title">${escHtml(song.title)}</div>
-                <div class="result-artist">${escHtml(song.artist)}</div>
-            </div>
-        `;
-        div.onclick = () => {
-            addToQueue(song);
-            closeSearch();
-            closeHomeScreen();
-        };
+    searchResults.forEach((song, idx) => {
+        const div = createSearchResultElement(song, idx === 0);
         searchResultsContainer.appendChild(div);
     });
+}
+
+function createSearchResultElement(song, isSelected) {
+    const div = document.createElement('div');
+    div.className = `result-item ${isSelected ? 'selected' : ''}`;
+    const ytId = song.ytId || '3kWXCvbavGk';
+    const thumbUrl = `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`;
+    div.innerHTML = `
+        <img src="${thumbUrl}" class="result-thumbnail" alt="thumbnail" loading="lazy" onerror="this.src='cover-bg.jpg'">
+        <div class="result-info">
+            <div class="result-title">${escHtml(song.title)}</div>
+            <div class="result-artist">${escHtml(song.artist || 'Karaoke')}</div>
+        </div>
+    `;
+    div.onclick = () => {
+        addToQueue(song);
+        closeSearch();
+        closeHomeScreen();
+    };
+    return div;
 }
 
 function updateSearchSelectionUI() {
@@ -2155,11 +2228,12 @@ async function openRemoteModal() {
     let defaultUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/remote.html');
 
     try {
-        const res = await fetch('remote_api.php?action=info');
-        const info = await res.json();
-        if (info && info.ok && info.remoteUrl) {
-            defaultUrl = info.remoteUrl;
-            if (Array.isArray(info.allIps) && info.allIps.length > 0 && remoteIpChips) {
+        const res = await fetch(getApiEndpoint('remote_api.php?action=info'));
+        if (res.ok) {
+            const info = await res.json();
+            if (info && info.ok && info.remoteUrl) {
+                defaultUrl = info.remoteUrl;
+                if (Array.isArray(info.allIps) && info.allIps.length > 0 && remoteIpChips) {
                 const portPart = (info.port && info.port !== '80' && info.port !== '443') ? `:${info.port}` : '';
                 remoteIpChips.innerHTML = info.allIps.map(ip => {
                     const url = `http://${ip}${portPart}${info.basePath}/remote.html`;
@@ -2237,11 +2311,15 @@ async function syncHostToServer() {
     if (isSyncingHost) return;
     isSyncingHost = true;
     try {
-        const res = await fetch('remote_api.php?action=sync_host', {
+        const res = await fetch(getApiEndpoint('remote_api.php?action=sync_host'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(statePayload)
         });
+        if (!res.ok) {
+            isSyncingHost = false;
+            return;
+        }
         const data = await res.json();
         if (data && data.ok) {
             if (remoteCountBadge) {
@@ -2509,10 +2587,12 @@ function initTvStandbyClock() {
 async function initRemoteQrCode() {
     let defaultUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/remote.html');
     try {
-        const res = await fetch('remote_api.php?action=info');
-        const info = await res.json();
-        if (info && info.ok && info.remoteUrl) {
-            defaultUrl = info.remoteUrl;
+        const res = await fetch(getApiEndpoint('remote_api.php?action=info'));
+        if (res.ok) {
+            const info = await res.json();
+            if (info && info.ok && info.remoteUrl) {
+                defaultUrl = info.remoteUrl;
+            }
         }
     } catch (e) { }
 
