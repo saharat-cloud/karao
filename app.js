@@ -2442,10 +2442,29 @@ async function syncHostToServer() {
 }
 
 const processedCmdIds = new Set();
+let lastExecutedTimestamp = 0;
+let lastExecutedType = '';
+
 function executeRemoteCommand(cmd) {
     if (!cmd || !cmd.type) return;
-    if (cmd.id && processedCmdIds.has(cmd.id)) return;
-    if (cmd.id) processedCmdIds.add(cmd.id);
+
+    // 1. Deduplicate by unique command ID
+    if (cmd.id) {
+        if (processedCmdIds.has(cmd.id)) return;
+        processedCmdIds.add(cmd.id);
+        if (processedCmdIds.size > 200) {
+            const first = processedCmdIds.values().next().value;
+            processedCmdIds.delete(first);
+        }
+    }
+
+    // 2. Debounce duplicate identical commands within 120ms (prevents dual-channel execution)
+    const now = Date.now();
+    if (cmd.type === lastExecutedType && (now - lastExecutedTimestamp) < 120) {
+        return;
+    }
+    lastExecutedTimestamp = now;
+    lastExecutedType = cmd.type;
 
     const sender = cmd.sender || 'รีโมทมือถือ';
     const p = cmd.payload || {};

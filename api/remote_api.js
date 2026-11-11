@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         if (!memoryState.clients) memoryState.clients = {};
         memoryState.clients[clientId] = now;
 
-        const cmdId = 'cmd_' + now + '_' + Math.random().toString(36).substr(2, 5);
+        const cmdId = payload.id || ('cmd_' + now + '_' + Math.random().toString(36).substr(2, 5));
         const newCmd = {
             id: cmdId,
             type: payload.type,

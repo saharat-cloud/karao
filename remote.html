@@ -959,7 +959,7 @@
 
     <!-- PeerJS for 0ms Instant Direct WebRTC Remote Connection -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-    <script src="songs.js?v=6"></script>
+    <script src="songs.js?v=7"></script>
     <script>
         const clientId = 'rm_' + Math.random().toString(36).substring(2, 9);
         const urlParams = new URLSearchParams(window.location.search);
@@ -1099,34 +1099,47 @@
             return document.getElementById('remote-user-name').value.trim() || 'รีโมทมือถือ';
         }
 
+        let lastRemoteSendTime = 0;
+        let lastRemoteSendType = '';
+
         async function sendCmd(type, payload = {}) {
+            // Debounce accidental micro-bounces within 120ms
+            const now = Date.now();
+            if (type === lastRemoteSendType && (now - lastRemoteSendTime) < 120) {
+                return;
+            }
+            lastRemoteSendTime = now;
+            lastRemoteSendType = type;
+
             // Tactile feedback on every tap
             playRemoteClickSound();
             triggerHapticFeedback();
 
             const cmdObj = {
-                id: 'cmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                id: 'cmd_' + now + '_' + Math.random().toString(36).slice(2, 7),
                 type: type,
                 payload: payload,
                 sender: getSenderName(),
                 clientId: clientId
             };
 
-            // 1. Ultra-fast direct WebRTC (< 20ms direct peer-to-peer data channel)
-            let sentViaP2P = false;
+            // 1. If WebRTC direct channel is open, send ONLY via WebRTC (instant < 20ms delivery)
             if (p2pConn && p2pConn.open) {
                 try {
                     p2pConn.send(cmdObj);
-                    sentViaP2P = true;
+                    handleToast(type);
+                    return;
                 } catch (e) { }
             }
 
-            // 2. Instant local BroadcastChannel (for same-device testing, 0ms)
-            if (remoteChannel) {
-                try { remoteChannel.postMessage({ type: 'REMOTE_COMMAND', command: cmdObj }); } catch (e) { }
+            // 2. Same-browser BroadcastChannel (only when on same machine without P2P)
+            if (remoteChannel && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                try {
+                    remoteChannel.postMessage({ type: 'REMOTE_COMMAND', command: cmdObj });
+                } catch (e) { }
             }
 
-            // 3. Server-side HTTP API (always delivers as fallback)
+            // 3. Fallback to Server HTTP API (when WebRTC is not connected)
             try {
                 fetch(getApiEndpoint('remote_api.php?action=command'), {
                     method: 'POST',
@@ -1135,6 +1148,10 @@
                 }).catch(() => {});
             } catch (e) { }
 
+            handleToast(type);
+        }
+
+        function handleToast(type) {
             const toastMap = {
                 'play_pause': '⏯️ สั่งเล่น/หยุดเพลงแล้ว',
                 'skip': '⏭️ สั่งข้ามเพลงแล้ว',

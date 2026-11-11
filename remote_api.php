@@ -153,7 +153,7 @@ if ($action === 'command') {
     $state['clients'][$clientId] = time();
 
     $newCommand = [
-        'id' => uniqid('cmd_', true),
+        'id' => $cmd['id'] ?? uniqid('cmd_', true),
         'type' => $cmd['type'],
         'payload' => $cmd['payload'] ?? null,
         'sender' => $cmd['sender'] ?? 'รีโมทมือถือ',
